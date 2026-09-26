@@ -21,19 +21,9 @@ updates:
       build:
         patterns: ['vite', '@vitejs/*', 'tailwindcss', '@tailwindcss/*', 'typescript']
     ignore:
-      # Stay on React 18 until the editor stack is validated on 19.
-      - dependency-name: 'react'
-        update-types: ['version-update:semver-major']
-      - dependency-name: 'react-dom'
-        update-types: ['version-update:semver-major']
-      - dependency-name: '@types/react'
-        update-types: ['version-update:semver-major']
-      - dependency-name: '@types/react-dom'
-        update-types: ['version-update:semver-major']
-      # eslint-plugin-jsx-a11y does not support ESLint 10 yet.
-      - dependency-name: 'eslint'
-        update-types: ['version-update:semver-major']
-      - dependency-name: '@eslint/js'
+      # Major versions (React 19, TypeScript 7, ESLint 10, React Router 8, …) change APIs and
+      # peer-dependency ranges; they are upgraded deliberately in a dedicated PR, not by bot.
+      - dependency-name: '*'
         update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
