@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { Artboard, SvgAsset, TextRun } from '@/features/projects/schema';
-import type { TextLayout } from '@/features/shaping/types';
-
-import { ArtboardStage, type StageChange, type StageTextLayer } from './artboard-stage';
+import { ArtboardStage, type StageCallbacks, type StageScene } from './artboard-stage';
 
 function isCanvasSupported(): boolean {
   try {
@@ -15,37 +12,21 @@ function isCanvasSupported(): boolean {
 }
 
 interface ArtboardCanvasProps {
-  artboard: Artboard;
-  assets: readonly SvgAsset[];
-  texts: readonly TextRun[];
-  layouts: ReadonlyMap<string, TextLayout>;
+  scene: StageScene;
   zoom: number;
-  interactive: boolean;
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
-  onChange: (change: StageChange) => void;
+  callbacks: StageCallbacks;
 }
 
 /** React wrapper around the Fabric.js artboard stage. */
-export function ArtboardCanvas({
-  artboard,
-  assets,
-  texts,
-  layouts,
-  zoom,
-  interactive,
-  selectedId,
-  onSelect,
-  onChange,
-}: ArtboardCanvasProps) {
+export function ArtboardCanvas({ scene, zoom, callbacks }: ArtboardCanvasProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<ArtboardStage | null>(null);
   const [supported] = useState(isCanvasSupported);
-  const callbacks = useRef({ onSelect, onChange });
+  const callbacksRef = useRef(callbacks);
 
   useEffect(() => {
-    callbacks.current = { onSelect, onChange };
+    callbacksRef.current = callbacks;
   });
 
   // Fabric wraps the <canvas> in its own elements, so the canvas is created
@@ -55,15 +36,26 @@ export function ArtboardCanvas({
     if (!supported || !container) return;
     const element = document.createElement('canvas');
     container.appendChild(element);
+    const forward = <K extends keyof StageCallbacks>(key: K) =>
+      ((...args: Parameters<StageCallbacks[K]>) => {
+        (callbacksRef.current[key] as (...a: Parameters<StageCallbacks[K]>) => void)(...args);
+      }) as StageCallbacks[K];
     const stage = new ArtboardStage(element, {
-      onSelect: (id) => {
-        callbacks.current.onSelect(id);
-      },
-      onChange: (change) => {
-        callbacks.current.onChange(change);
-      },
+      selectLayers: forward('selectLayers'),
+      selectUnits: forward('selectUnits'),
+      drillDown: forward('drillDown'),
+      exitEdit: forward('exitEdit'),
+      changeLayers: forward('changeLayers'),
+      changeParts: forward('changeParts'),
+      addGuide: forward('addGuide'),
+      moveGuide: forward('moveGuide'),
+      previewKashida: forward('previewKashida'),
+      commitKashida: forward('commitKashida'),
     });
     stageRef.current = stage;
+    if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
+      (window as unknown as { __qalamStage?: ArtboardStage }).__qalamStage = stage;
+    }
     return () => {
       stage.dispose();
       stageRef.current = null;
@@ -72,22 +64,12 @@ export function ArtboardCanvas({
   }, [supported]);
 
   useEffect(() => {
-    stageRef.current?.setViewport(artboard.width, artboard.height, zoom);
-  }, [artboard.width, artboard.height, zoom]);
+    stageRef.current?.setViewport(scene.artboard.width, scene.artboard.height, zoom);
+  }, [scene.artboard.width, scene.artboard.height, zoom]);
 
   useEffect(() => {
-    stageRef.current?.setBackground(artboard.background);
-  }, [artboard.background]);
-
-  useEffect(() => {
-    stageRef.current?.setInteractive(interactive);
-  }, [interactive]);
-
-  useEffect(() => {
-    const textLayers: StageTextLayer[] = texts.map((run) => ({ run, layout: layouts.get(run.id) }));
-    stageRef.current?.sync(assets, textLayers);
-    stageRef.current?.select(selectedId);
-  }, [assets, texts, layouts, selectedId]);
+    stageRef.current?.sync(scene);
+  }, [scene]);
 
   if (!supported) {
     return (

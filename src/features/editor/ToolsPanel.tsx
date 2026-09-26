@@ -1,4 +1,12 @@
-import { Baseline, Hand, MousePointer2, MoveHorizontal, Type, type LucideIcon } from 'lucide-react';
+import {
+  Baseline,
+  Hand,
+  ImagePlus,
+  MousePointer2,
+  MoveHorizontal,
+  Type,
+  type LucideIcon,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { ShortcutKeys } from '@/components/layout/ShortcutLabel';
@@ -8,34 +16,38 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SimpleTooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
-import { useEditorStore } from './editor-store';
+import { useEditorStore, type EditorTool } from './editor-store';
+import type { EditorActions } from './use-editor-actions';
 
-type ToolId = 'select' | 'hand' | 'text' | 'baseline' | 'kashida';
+type ToolId = EditorTool | 'text' | 'placeSvg';
 
 interface ToolDef {
   id: ToolId;
   icon: LucideIcon;
-  combo?: string;
-  available: boolean;
+  combo: string;
 }
 
 const TOOLS: readonly ToolDef[] = [
-  { id: 'select', icon: MousePointer2, combo: shortcutCombo('selectTool'), available: true },
-  { id: 'hand', icon: Hand, combo: shortcutCombo('handTool'), available: true },
-  { id: 'text', icon: Type, combo: shortcutCombo('textTool'), available: true },
-  { id: 'baseline', icon: Baseline, available: false },
-  { id: 'kashida', icon: MoveHorizontal, available: false },
+  { id: 'select', icon: MousePointer2, combo: shortcutCombo('selectTool') },
+  { id: 'hand', icon: Hand, combo: shortcutCombo('handTool') },
+  { id: 'text', icon: Type, combo: shortcutCombo('textTool') },
+  { id: 'kashida', icon: MoveHorizontal, combo: shortcutCombo('kashidaTool') },
+  { id: 'baseline', icon: Baseline, combo: shortcutCombo('baselineTool') },
+  { id: 'placeSvg', icon: ImagePlus, combo: shortcutCombo('placeSvg') },
 ];
 
-export function ToolsPanel() {
+const MODES = new Set<ToolId>(['select', 'hand', 'kashida', 'baseline']);
+
+export function ToolsPanel({ actions }: { actions: EditorActions }) {
   const { t } = useTranslation();
   const tool = useEditorStore((s) => s.tool);
   const setTool = useEditorStore((s) => s.setTool);
   const setTextDialogOpen = useEditorStore((s) => s.setTextDialogOpen);
 
   const activate = (id: ToolId) => {
-    if (id === 'select' || id === 'hand') setTool(id);
-    else if (id === 'text') setTextDialogOpen(true);
+    if (id === 'text') setTextDialogOpen(true);
+    else if (id === 'placeSvg') void actions.placeSvgFile();
+    else setTool(id);
   };
 
   return (
@@ -43,11 +55,11 @@ export function ToolsPanel() {
       <CardHeader className="pb-1.5">
         <CardTitle>{t('editor.tools.title')}</CardTitle>
       </CardHeader>
-      <CardContent className="px-2 pb-2">
-        <div role="toolbar" aria-label={t('editor.tools.title')} className="grid grid-cols-5 gap-1">
-          {TOOLS.map(({ id, icon: Icon, combo, available }) => {
+      <CardContent className="grid gap-2 px-2 pb-2">
+        <div role="toolbar" aria-label={t('editor.tools.title')} className="grid grid-cols-6 gap-1">
+          {TOOLS.map(({ id, icon: Icon, combo }) => {
             const label = t(`editor.tools.${id}`);
-            const isMode = id === 'select' || id === 'hand';
+            const isMode = MODES.has(id);
             const active = isMode && tool === id;
             return (
               <SimpleTooltip
@@ -56,28 +68,18 @@ export function ToolsPanel() {
                 label={
                   <span className="flex items-center gap-2">
                     {label}
-                    {available ? (
-                      combo && <ShortcutKeys combo={combo} />
-                    ) : (
-                      <span>· {t('common.comingSoon')}</span>
-                    )}
+                    <ShortcutKeys combo={combo} />
                   </span>
                 }
               >
-                {/* aria-disabled (not disabled) keeps the tooltip reachable by keyboard and pointer. */}
                 <Button
                   variant="ghost"
                   size="icon"
                   aria-label={label}
                   aria-pressed={isMode ? active : undefined}
-                  aria-disabled={!available}
-                  className={cn(
-                    'w-full',
-                    active && 'bg-primary text-primary-foreground hover:bg-primary/90',
-                    !available && 'cursor-not-allowed opacity-45 hover:bg-transparent',
-                  )}
+                  className={cn('w-full', active && 'bg-primary text-primary-foreground hover:bg-primary/90')}
                   onClick={() => {
-                    if (available) activate(id);
+                    activate(id);
                   }}
                 >
                   <Icon aria-hidden />
@@ -86,6 +88,11 @@ export function ToolsPanel() {
             );
           })}
         </div>
+        {(tool === 'kashida' || tool === 'baseline') && (
+          <p className="px-1 text-[0.6875rem] text-muted-foreground" role="status">
+            {t(`editor.tools.${tool}Hint`)}
+          </p>
+        )}
       </CardContent>
     </Card>
   );

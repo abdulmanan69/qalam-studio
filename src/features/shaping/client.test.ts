@@ -13,6 +13,7 @@ const LAYOUT: TextLayout = {
   lineAdvance: 5,
   lines: [],
   glyphs: [],
+  extendable: [],
 };
 
 class FakeWorker implements WorkerLike {

@@ -1,4 +1,4 @@
-import { Blob, Buffer, Direction, Face, Feature, Font, GlyphClass, shape } from 'harfbuzzjs';
+import { Blob, Buffer, ClusterLevel, Direction, Face, Feature, Font, GlyphClass, shape } from 'harfbuzzjs';
 
 import type { FontMetrics, GlyphKind, ShapedGlyph, ShapeOptions } from './types';
 
@@ -12,10 +12,17 @@ const KIND_BY_CLASS: Record<number, GlyphKind> = {
 
 const FEATURE_TAG = /^[\x20-\x7e]{4}$/;
 
-export function toHarfBuzzFeatures(features: ShapeOptions['features']): Feature[] {
-  return Object.entries(features ?? {})
+/** Alternate-form features a user can pick per letter. */
+export const ALTERNATE_FEATURE = /^(salt|swsh|ss\d\d|cv\d\d)$/;
+
+export function toHarfBuzzFeatures(options: Pick<ShapeOptions, 'features' | 'rangeFeatures'>): Feature[] {
+  const global = Object.entries(options.features ?? {})
     .filter(([tag]) => FEATURE_TAG.test(tag))
     .map(([tag, value]) => new Feature(tag, typeof value === 'boolean' ? Number(value) : value));
+  const ranged = (options.rangeFeatures ?? [])
+    .filter((f) => FEATURE_TAG.test(f.tag) && f.end > f.start)
+    .map((f) => new Feature(f.tag, f.value, f.start, f.end));
+  return [...global, ...ranged];
 }
 
 /**
@@ -26,6 +33,7 @@ export class HarfBuzzFont {
   private readonly face: Face;
   private readonly font: Font;
   private readonly kinds = new Map<number, GlyphKind>();
+  private cachedFeatureTags: string[] | undefined;
 
   constructor(bytes: ArrayBuffer | Uint8Array) {
     this.face = new Face(new Blob(bytes));
@@ -57,7 +65,25 @@ export class HarfBuzzFont {
     return kind;
   }
 
-  /** Shape one line of text. Glyphs come back in visual order (left to right). */
+  glyphName(glyphId: number): string | null {
+    const name = this.font.glyphName(glyphId);
+    return name && !/^gid\d+$/.test(name) ? name : null;
+  }
+
+  /** GSUB features this font offers for alternate letter forms. */
+  alternateFeatureTags(): string[] {
+    if (!this.cachedFeatureTags) {
+      const tags = new Set(this.face.getTableFeatureTags('GSUB'));
+      this.cachedFeatureTags = [...tags].filter((tag) => ALTERNATE_FEATURE.test(tag)).sort();
+    }
+    return this.cachedFeatureTags;
+  }
+
+  /**
+   * Shape one line of text. Glyphs come back in visual order (left to right)
+   * with character-level clusters, so every glyph — including marks — maps
+   * back to the exact character it was shaped from.
+   */
   shape(text: string, options: ShapeOptions): ShapedGlyph[] {
     if (text.length === 0) return [];
     const buffer = new Buffer();
@@ -65,7 +91,8 @@ export class HarfBuzzFont {
     buffer.setDirection(options.direction === 'ltr' ? Direction.LTR : Direction.RTL);
     buffer.setScript(options.script ?? 'Arab');
     buffer.setLanguage(options.language);
-    shape(this.font, buffer, toHarfBuzzFeatures(options.features));
+    buffer.setClusterLevel(ClusterLevel.MONOTONE_CHARACTERS);
+    shape(this.font, buffer, toHarfBuzzFeatures(options));
     return buffer.getGlyphInfosAndPositions().map((g) => ({
       glyphId: g.codepoint,
       cluster: g.cluster,

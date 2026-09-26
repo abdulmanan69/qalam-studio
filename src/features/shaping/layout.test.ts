@@ -16,7 +16,22 @@ const fakeFont: LayoutFont = {
       yOffset: ch === '^' ? 100 : 0,
       kind: 'base',
     })),
-  glyphPath: (id, x, y) => `M${x} ${y}#${id}`,
+  // Each glyph is a 100 × 100 unit square sitting on the baseline.
+  glyphShapes: () => [
+    {
+      commands: [
+        { type: 'M', x: 0, y: 0 },
+        { type: 'L', x: 100, y: 0 },
+        { type: 'L', x: 100, y: -100 },
+        { type: 'L', x: 0, y: -100 },
+        { type: 'Z' },
+      ],
+      area: 10_000,
+      box: { x: 0, y: -100, width: 100, height: 100 },
+    },
+  ],
+  glyphName: () => null,
+  hasCodePoint: () => false,
 };
 
 describe('splitLines', () => {
@@ -57,8 +72,19 @@ describe('layoutText', () => {
     expect(ltrEnd.lines[0]?.x).toBe(10);
   });
 
-  it('passes positioned origins to the outline provider', () => {
+  it('places glyph outlines at their origins, split into keyed parts', () => {
     const layout = layoutText(fakeFont, 'ab', { language: 'en', fontSize: 10 });
-    expect(layout.glyphs[1]?.path).toBe('M5 8#98');
+    const glyph = layout.glyphs[1];
+    expect(glyph?.parts).toHaveLength(1);
+    expect(glyph?.parts[0]?.key).toBe('1:98:0:0');
+    expect(glyph?.parts[0]?.kind).toBe('body');
+    expect(glyph?.parts[0]?.box).toEqual({ x: 5, y: 7, width: 1, height: 1 });
+  });
+
+  it('stretches letters for kashida when the font has no tatweel', () => {
+    const plain = layoutText(fakeFont, 'بب', { language: 'ar', fontSize: 10 });
+    const long = layoutText(fakeFont, 'بب', { language: 'ar', fontSize: 10, kashida: { '0': 2 } });
+    expect(plain.extendable).toEqual([0]);
+    expect(long.width).toBeCloseTo(plain.width + 20);
   });
 });

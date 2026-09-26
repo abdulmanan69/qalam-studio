@@ -12,6 +12,7 @@ import {
   projectSchema,
   type ArtboardPresetId,
   type Project,
+  type SvgAsset,
 } from './schema';
 import type { ParsedSvg } from './svg-import';
 
@@ -57,10 +58,11 @@ export function buildProject(input: NewProjectInput, now: number = Date.now()): 
         width: normalizeDimension(input.width),
         height: normalizeDimension(input.height),
         background: input.background ?? '#ffffff',
+        guides: [],
       },
     ],
-    assets: [],
-    texts: [],
+    layers: [],
+    groups: [],
   };
   return projectSchema.parse(project);
 }
@@ -88,22 +90,30 @@ export function buildProjectFromSvg(
   if (!artboard) throw new Error('Project has no artboard');
   return projectSchema.parse({
     ...base,
-    assets: [
-      {
-        id: createId(),
-        kind: 'svg',
-        name: base.name,
-        artboardId: artboard.id,
-        svg: parsed.svg,
-        x: 0,
-        y: 0,
-        width,
-        height,
-        angle: 0,
-        hidden: false,
-      },
-    ],
+    layers: [createSvgLayer(parsed, artboard.id, base.name, { x: 0, y: 0, width, height })],
   });
+}
+
+/** A new SVG artwork layer. */
+export function createSvgLayer(
+  parsed: ParsedSvg,
+  artboardId: string,
+  name: string,
+  box: { x: number; y: number; width: number; height: number },
+): SvgAsset {
+  return {
+    id: createId(),
+    kind: 'svg',
+    name,
+    artboardId,
+    svg: parsed.svg,
+    ...box,
+    angle: 0,
+    opacity: 1,
+    hidden: false,
+    locked: false,
+    groupId: null,
+  };
 }
 
 export async function createProject(input: NewProjectInput, now: number = Date.now()): Promise<Project> {
@@ -156,7 +166,10 @@ export async function renameProject(id: string, name: string): Promise<Project> 
 }
 
 export async function deleteProject(id: string): Promise<void> {
-  await db.projects.delete(id);
+  await db.transaction('rw', db.projects, db.versions, async () => {
+    await db.projects.delete(id);
+    await db.versions.where('projectId').equals(id).delete();
+  });
 }
 
 export async function duplicateProject(id: string, name: string, now: number = Date.now()): Promise<Project> {
@@ -186,5 +199,8 @@ export async function importProject(project: Project, now: number = Date.now()):
 }
 
 export async function clearAllProjects(): Promise<void> {
-  await db.projects.clear();
+  await db.transaction('rw', db.projects, db.versions, async () => {
+    await db.projects.clear();
+    await db.versions.clear();
+  });
 }

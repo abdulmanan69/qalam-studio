@@ -49,3 +49,17 @@ export function computeFitZoom(
   const availableH = Math.max(1, viewport.height - padding * 2);
   return clampZoom(Math.min(availableW / artboard.width, availableH / artboard.height, 1));
 }
+
+/** Ruler thickness in CSS pixels. */
+export const RULER_SIZE = 20;
+
+/** Tick spacing (artboard px) giving at least `minPx` screen pixels between labels. */
+export function rulerStep(zoom: number, minPx = 50): number {
+  for (let power = -1; power < 6; power++) {
+    for (const base of [1, 2, 5]) {
+      const step = base * 10 ** power;
+      if (step * zoom >= minPx) return step;
+    }
+  }
+  return 1_000_000;
+}

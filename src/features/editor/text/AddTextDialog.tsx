@@ -68,6 +68,8 @@ function AddTextForm({ artboard, onAdd, onDone }: AddTextFormProps) {
             fontSize,
             lineHeight: font.lineHeight,
             align: 'start',
+            kashida: {},
+            features: [],
           }),
         );
         const fitted = fitFontSize(fontSize, layout.width, artboard);

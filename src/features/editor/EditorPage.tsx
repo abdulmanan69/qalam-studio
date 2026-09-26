@@ -1,5 +1,5 @@
 import { FileQuestion } from 'lucide-react';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router';
 
@@ -7,24 +7,44 @@ import { useUiStore } from '@/app/ui-store';
 import { PageLoader } from '@/components/layout/PageLoader';
 import { shortcutCombo } from '@/components/layout/shortcuts';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useProject } from '@/features/projects/hooks';
 import { normalizeName } from '@/features/projects/repository';
 import type { Project, TextRun } from '@/features/projects/schema';
 import { useProjectActions } from '@/features/projects/use-project-actions';
 import { useDocumentTitle } from '@/lib/use-document-title';
-import { useHotkeys } from '@/lib/use-hotkeys';
+import { useHotkeys, type HotkeyBinding } from '@/lib/use-hotkeys';
 
-import type { StageChange } from './canvas/artboard-stage';
+import { ArtboardsPanel } from './ArtboardsPanel';
+import { AssetsPanel } from './AssetsPanel';
+import type { StageCallbacks, StageScene } from './canvas/artboard-stage';
 import { useTextLayouts } from './canvas/use-text-layouts';
 import { CanvasViewport } from './CanvasViewport';
+import { applyToDocument, useDocumentStore } from './document-store';
 import { EditorToolbar } from './EditorToolbar';
-import { useEditorStore } from './editor-store';
+import { useEditorStore, type EditLevel } from './editor-store';
+import { ExportDialog } from './ExportDialog';
 import { LayersPanel } from './LayersPanel';
-import { PropertiesPanel, type SelectedLayer } from './PropertiesPanel';
+import { PropertiesPanel } from './PropertiesPanel';
 import { AddTextDialog } from './text/AddTextDialog';
 import { ToolsPanel } from './ToolsPanel';
-import { useProjectUpdater } from './use-project-updater';
+import { useAutosave } from './use-autosave';
+import { useEditorActions, type EditorActions } from './use-editor-actions';
+import { VersionHistoryDialog } from './VersionHistoryDialog';
 import { nextZoomStep } from './zoom';
+
+const DEEPER: Record<EditLevel, EditLevel> = {
+  object: 'letter',
+  word: 'letter',
+  letter: 'part',
+  part: 'part',
+};
+const SHALLOWER: Record<EditLevel, EditLevel> = {
+  object: 'object',
+  word: 'object',
+  letter: 'word',
+  part: 'letter',
+};
 
 function ProjectMissing() {
   const { t } = useTranslation();
@@ -43,186 +63,270 @@ function ProjectMissing() {
   );
 }
 
-function useEditorShortcuts(onDownload: () => void, onDeleteSelected: () => void) {
-  const setTool = useEditorStore((s) => s.setTool);
-  const setZoom = useEditorStore((s) => s.setZoom);
-  const requestFit = useEditorStore((s) => s.requestFit);
-  const select = useEditorStore((s) => s.select);
-  const setTextDialogOpen = useEditorStore((s) => s.setTextDialogOpen);
+function useEditorShortcuts(actions: EditorActions, onDownload: () => void) {
+  const store = useEditorStore;
   const textDialogOpen = useEditorStore((s) => s.textDialogOpen);
+  const exportOpen = useEditorStore((s) => s.exportDialogOpen);
+  const historyOpen = useEditorStore((s) => s.historyDialogOpen);
   const appDialogOpen = useUiStore((s) => s.dialog !== null);
-  const idle = !textDialogOpen && !appDialogOpen;
+  const idle = !textDialogOpen && !exportOpen && !historyOpen && !appDialogOpen;
   const zoomBy = (dir: 1 | -1) => {
-    const state = useEditorStore.getState();
-    setZoom(Math.min(nextZoomStep(state.zoom, dir), state.maxZoom));
+    const state = store.getState();
+    state.setZoom(Math.min(nextZoomStep(state.zoom, dir), state.maxZoom));
+  };
+  const on = (
+    id: Parameters<typeof shortcutCombo>[0],
+    handler: () => void,
+    enabled = idle,
+  ): HotkeyBinding => ({
+    combo: shortcutCombo(id),
+    handler,
+    enabled,
+  });
+  const nudge = (dx: number, dy: number) => () => {
+    actions.nudge(dx, dy);
   };
 
-  useHotkeys([
-    { combo: shortcutCombo('downloadProject'), handler: onDownload },
-    {
-      combo: shortcutCombo('zoomIn'),
-      handler: () => {
+  const bindings: HotkeyBinding[] = [
+    on('downloadProject', onDownload, true),
+    on(
+      'zoomIn',
+      () => {
         zoomBy(1);
       },
-    },
-    // Also accept the "+" key itself (numeric keypad, non-US layouts).
+      true,
+    ),
     {
       combo: 'mod+plus',
       handler: () => {
         zoomBy(1);
       },
     },
-    {
-      combo: shortcutCombo('zoomOut'),
-      handler: () => {
+    on(
+      'zoomOut',
+      () => {
         zoomBy(-1);
       },
-    },
-    { combo: shortcutCombo('zoomFit'), handler: requestFit, enabled: idle },
-    {
-      combo: shortcutCombo('zoomActual'),
-      handler: () => {
-        setZoom(1);
+      true,
+    ),
+    on('zoomFit', () => {
+      store.getState().requestFit();
+    }),
+    on(
+      'zoomActual',
+      () => {
+        store.getState().setZoom(1);
       },
-    },
-    {
-      combo: shortcutCombo('selectTool'),
-      handler: () => {
-        setTool('select');
-      },
-      enabled: idle,
-    },
-    {
-      combo: shortcutCombo('handTool'),
-      handler: () => {
-        setTool('hand');
-      },
-      enabled: idle,
-    },
-    {
-      combo: shortcutCombo('textTool'),
-      handler: () => {
-        setTextDialogOpen(true);
-      },
-      enabled: idle,
-    },
-    { combo: shortcutCombo('deleteLayer'), handler: onDeleteSelected, enabled: idle },
-    { combo: 'backspace', handler: onDeleteSelected, enabled: idle },
-    {
-      combo: shortcutCombo('deselect'),
-      handler: () => {
-        select(null);
-      },
-      enabled: idle,
-    },
-  ]);
+      true,
+    ),
+    on('selectTool', () => {
+      store.getState().setTool('select');
+    }),
+    on('handTool', () => {
+      store.getState().setTool('hand');
+    }),
+    on('kashidaTool', () => {
+      store.getState().setTool('kashida');
+    }),
+    on('baselineTool', () => {
+      store.getState().setTool('baseline');
+    }),
+    on('textTool', () => {
+      store.getState().setTextDialogOpen(true);
+    }),
+    on('deleteLayer', actions.deleteSelection),
+    { combo: 'backspace', handler: actions.deleteSelection, enabled: idle },
+    on('deselect', () => {
+      const state = store.getState();
+      if (state.tool !== 'select') state.setTool('select');
+      else if (state.editLayerId) state.setEditLevel(SHALLOWER[state.editLevel]);
+      else state.select(null);
+    }),
+    on('editLetters', () => {
+      const state = store.getState();
+      const id = state.editLayerId ?? state.selectedIds.at(-1);
+      const layer = useDocumentStore.getState().project?.layers.find((l) => l.id === id);
+      if (layer?.kind !== 'text') return;
+      if (state.editLayerId) state.setEditLevel(DEEPER[state.editLevel]);
+      else state.editLayer(layer.id, 'letter');
+    }),
+    on('undo', actions.undo),
+    on('redo', actions.redo),
+    { combo: 'mod+y', handler: actions.redo, enabled: idle },
+    on('copy', actions.copy),
+    on('cut', actions.cut),
+    on('paste', () => {
+      void actions.paste();
+    }),
+    on('duplicate', actions.duplicateSelection),
+    on('selectAll', actions.selectAll),
+    on('group', actions.group),
+    on('ungroup', () => {
+      actions.ungroup();
+    }),
+    on('bringForward', () => {
+      actions.reorder('forward');
+    }),
+    on('sendBackward', () => {
+      actions.reorder('backward');
+    }),
+    on('bringToFront', () => {
+      actions.reorder('front');
+    }),
+    on('sendToBack', () => {
+      actions.reorder('back');
+    }),
+    on('lockLayer', () => {
+      actions.toggleLocked(store.getState().selectedIds);
+    }),
+    on('toggleGrid', () => {
+      const state = store.getState();
+      state.setView({ grid: !state.view.grid });
+    }),
+    on('toggleRulers', () => {
+      const state = store.getState();
+      state.setView({ rulers: !state.view.rulers });
+    }),
+    on('exportDesign', () => {
+      store.getState().setExportDialogOpen(true);
+    }),
+    on('placeSvg', () => {
+      void actions.placeSvgFile();
+    }),
+    { combo: 'arrowleft', handler: nudge(-1, 0), enabled: idle },
+    { combo: 'arrowright', handler: nudge(1, 0), enabled: idle },
+    { combo: 'arrowup', handler: nudge(0, -1), enabled: idle },
+    { combo: 'arrowdown', handler: nudge(0, 1), enabled: idle },
+    { combo: 'shift+arrowleft', handler: nudge(-10, 0), enabled: idle },
+    { combo: 'shift+arrowright', handler: nudge(10, 0), enabled: idle },
+    { combo: 'shift+arrowup', handler: nudge(0, -10), enabled: idle },
+    { combo: 'shift+arrowdown', handler: nudge(0, 10), enabled: idle },
+  ];
+  useHotkeys(bindings);
 }
 
 function EditorWorkspace({ project }: { project: Project }) {
   const { t } = useTranslation();
-  const actions = useProjectActions();
-  const update = useProjectUpdater(project.id);
+  const projectActions = useProjectActions();
+  useAutosave();
+
+  const activeArtboardId = useEditorStore((s) => s.activeArtboardId);
+  const selectedIds = useEditorStore((s) => s.selectedIds);
+  const editLayerId = useEditorStore((s) => s.editLayerId);
+  const editLevel = useEditorStore((s) => s.editLevel);
+  const selectedUnits = useEditorStore((s) => s.selectedUnits);
+  const lockMarks = useEditorStore((s) => s.lockMarks);
+  const tool = useEditorStore((s) => s.tool);
+  const view = useEditorStore((s) => s.view);
+  const kashidaPreview = useEditorStore((s) => s.kashidaPreview);
   const reset = useEditorStore((s) => s.reset);
-  const selectedId = useEditorStore((s) => s.selectedId);
-  const select = useEditorStore((s) => s.select);
 
   useDocumentTitle(project.name);
   useEffect(() => {
     reset();
   }, [project.id, reset]);
 
-  const artboard = project.artboards[0];
+  const artboard = project.artboards.find((a) => a.id === activeArtboardId) ?? project.artboards[0];
   const artboardId = artboard?.id;
-  const assets = useMemo(
-    () => project.assets.filter((asset) => asset.artboardId === artboardId),
-    [project.assets, artboardId],
+  const layers = useMemo(
+    () => project.layers.filter((l) => l.artboardId === artboardId),
+    [project.layers, artboardId],
   );
-  const texts = useMemo(
-    () => project.texts.filter((run) => run.artboardId === artboardId),
-    [project.texts, artboardId],
+  const texts = useMemo(() => layers.filter((l): l is TextRun => l.kind === 'text'), [layers]);
+  const { layouts, errors } = useTextLayouts(texts, kashidaPreview);
+
+  // Leave unit editing if the edited layer disappears (undo, delete).
+  useEffect(() => {
+    const state = useEditorStore.getState();
+    if (editLayerId && !layers.some((l) => l.id === editLayerId && l.kind === 'text')) state.editLayer(null);
+    const existing = state.selectedIds.filter((id) => layers.some((l) => l.id === id));
+    if (existing.length !== state.selectedIds.length && !state.editLayerId) state.select(existing);
+  }, [layers, editLayerId]);
+
+  const scene = useMemo<StageScene | null>(
+    () =>
+      artboard
+        ? {
+            artboard,
+            layers: layers.map((layer) => ({
+              layer,
+              layout: layer.kind === 'text' ? layouts.get(layer.id) : undefined,
+            })),
+            selectedIds,
+            edit:
+              editLayerId && editLevel !== 'object'
+                ? { layerId: editLayerId, level: editLevel, lockMarks, selectedUnits }
+                : null,
+            tool,
+            view,
+          }
+        : null,
+    [artboard, layers, layouts, selectedIds, editLayerId, editLevel, lockMarks, selectedUnits, tool, view],
   );
-  const { layouts, errors } = useTextLayouts(texts);
 
-  const selectedText = texts.find((run) => run.id === selectedId);
-  const selectedAsset = assets.find((asset) => asset.id === selectedId);
-  const selected: SelectedLayer = selectedText
-    ? { kind: 'text', run: selectedText }
-    : selectedAsset
-      ? { kind: 'asset', asset: selectedAsset }
-      : null;
-
-  const download = () => {
-    actions.downloadProject(project);
-  };
-
-  const deleteLayer = useCallback(
-    (id: string) => {
-      select(null);
-      update((draft) => {
-        draft.texts = draft.texts.filter((run) => run.id !== id);
-        draft.assets = draft.assets.filter((asset) => asset.id !== id);
-      });
+  const actions = useEditorActions({
+    artboard: artboard ?? {
+      id: '',
+      name: '',
+      presetId: 'custom',
+      width: 1,
+      height: 1,
+      background: '#ffffff',
+      guides: [],
     },
-    [select, update],
-  );
-
-  useEditorShortcuts(download, () => {
-    if (selectedId) deleteLayer(selectedId);
+    layouts,
   });
 
-  const toggleHidden = (id: string) => {
-    update((draft) => {
-      const layer = draft.texts.find((run) => run.id === id) ?? draft.assets.find((asset) => asset.id === id);
-      if (layer) layer.hidden = !layer.hidden;
-    });
-  };
-
-  const onStageChange = useCallback(
-    (change: StageChange) => {
-      update((draft) => {
-        if (change.kind === 'text') {
-          const run = draft.texts.find((item) => item.id === change.id);
-          if (run)
-            Object.assign(run, {
-              x: change.x,
-              y: change.y,
-              scaleX: change.scaleX,
-              scaleY: change.scaleY,
-              angle: change.angle,
-            });
-        } else {
-          const asset = draft.assets.find((item) => item.id === change.id);
-          if (asset)
-            Object.assign(asset, {
-              x: change.x,
-              y: change.y,
-              width: change.width,
-              height: change.height,
-              angle: change.angle,
-            });
+  const callbacks = useMemo<StageCallbacks>(
+    () => ({
+      selectLayers: (ids) => {
+        useEditorStore.getState().select(ids);
+      },
+      selectUnits: (ids) => {
+        useEditorStore.getState().selectUnits(ids);
+      },
+      drillDown: (layerId, unitId) => {
+        const state = useEditorStore.getState();
+        if (state.editLayerId !== layerId || state.editLevel === 'object') {
+          state.editLayer(layerId, 'letter');
+        } else if (unitId) {
+          state.setEditLevel(DEEPER[state.editLevel]);
         }
-      });
-    },
-    [update],
+      },
+      exitEdit: () => {
+        useEditorStore.getState().editLayer(null);
+      },
+      changeLayers: actions.changeLayers,
+      changeParts: actions.changeParts,
+      addGuide: actions.addGuide,
+      moveGuide: actions.moveGuide,
+      previewKashida: (layerId, letter, value) => {
+        useEditorStore.getState().setKashidaPreview({ layerId, letter, value });
+      },
+      commitKashida: (layerId, letter, value) => {
+        actions.setKashida(layerId, letter, value);
+        useEditorStore.getState().setKashidaPreview(null);
+      },
+    }),
+    [actions],
   );
 
-  const addText = (run: TextRun) => {
-    update((draft) => {
-      draft.texts.push(run);
-    });
-    select(run.id);
+  const download = () => {
+    projectActions.downloadProject(project);
   };
+  useEditorShortcuts(actions, download);
 
-  if (!artboard) return <ProjectMissing />;
+  if (!artboard || !scene) return <ProjectMissing />;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <h1 className="sr-only">{t('editor.heading', { name: project.name })}</h1>
       <EditorToolbar
         project={project}
+        actions={actions}
         onDownload={download}
         onRename={(name) => {
-          update((draft) => {
+          applyToDocument((draft) => {
             draft.name = normalizeName(name, draft.name);
           });
         }}
@@ -230,19 +334,28 @@ function EditorWorkspace({ project }: { project: Project }) {
       <div className="flex min-h-0 flex-1">
         <aside
           aria-label={t('editor.leftPanel')}
-          className="hidden w-60 shrink-0 flex-col gap-3 overflow-y-auto border-e border-border bg-background p-3 md:flex"
+          className="hidden w-64 shrink-0 flex-col gap-3 overflow-y-auto border-e border-border bg-background p-3 md:flex"
         >
-          <ToolsPanel />
-          <LayersPanel artboard={artboard} assets={assets} texts={texts} onToggleHidden={toggleHidden} />
+          <ToolsPanel actions={actions} />
+          <Tabs defaultValue="layers" className="flex min-h-0 flex-col gap-2">
+            <TabsList className="grid grid-cols-3">
+              <TabsTrigger value="layers">{t('editor.layers.title')}</TabsTrigger>
+              <TabsTrigger value="artboards">{t('editor.artboards.title')}</TabsTrigger>
+              <TabsTrigger value="assets">{t('editor.assets.title')}</TabsTrigger>
+            </TabsList>
+            <TabsContent value="layers">
+              <LayersPanel project={project} artboard={artboard} actions={actions} />
+            </TabsContent>
+            <TabsContent value="artboards">
+              <ArtboardsPanel project={project} activeId={artboard.id} actions={actions} />
+            </TabsContent>
+            <TabsContent value="assets">
+              <AssetsPanel actions={actions} />
+            </TabsContent>
+          </Tabs>
         </aside>
 
-        <CanvasViewport
-          artboard={artboard}
-          assets={assets}
-          texts={texts}
-          layouts={layouts}
-          onChange={onStageChange}
-        />
+        <CanvasViewport scene={scene} callbacks={callbacks} onAddGuide={actions.addGuide} />
 
         <aside
           aria-label={t('editor.properties.title')}
@@ -250,23 +363,41 @@ function EditorWorkspace({ project }: { project: Project }) {
         >
           <PropertiesPanel
             project={project}
-            selected={selected}
-            layoutError={selectedText ? errors.get(selectedText.id) : undefined}
-            update={update}
-            onDeleteLayer={deleteLayer}
+            artboard={artboard}
+            layouts={layouts}
+            errors={errors}
+            actions={actions}
           />
         </aside>
       </div>
-      <AddTextDialog artboard={artboard} onAdd={addText} />
+      <AddTextDialog artboard={artboard} onAdd={actions.addText} />
+      <ExportDialog project={project} artboard={artboard} />
+      <VersionHistoryDialog project={project} />
     </div>
   );
 }
 
+/** Loads the project from IndexedDB into the document store once, then edits it in memory. */
 export function EditorPage() {
   const { projectId } = useParams();
-  const project = useProject(projectId);
+  const stored = useProject(projectId);
+  const project = useDocumentStore((s) => s.project);
+  const load = useDocumentStore((s) => s.load);
+  const unload = useDocumentStore((s) => s.unload);
 
-  if (project === undefined) return <PageLoader />;
-  if (project === null) return <ProjectMissing />;
+  useEffect(() => {
+    if (stored && useDocumentStore.getState().project?.id !== stored.id) load(stored);
+  }, [stored, load]);
+
+  useEffect(
+    () => () => {
+      unload();
+    },
+    [projectId, unload],
+  );
+
+  if (stored === undefined) return <PageLoader />;
+  if (stored === null) return <ProjectMissing />;
+  if (project?.id !== stored.id) return <PageLoader />;
   return <EditorWorkspace key={project.id} project={project} />;
 }

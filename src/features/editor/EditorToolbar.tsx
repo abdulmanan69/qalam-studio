@@ -1,16 +1,43 @@
-import { ChevronRight, CircleCheck, Download, Maximize, Minus, Plus } from 'lucide-react';
+import {
+  ChevronRight,
+  CircleAlert,
+  CircleCheck,
+  Download,
+  FileDown,
+  History,
+  LoaderCircle,
+  Maximize,
+  Minus,
+  Plus,
+  Redo2,
+  SlidersHorizontal,
+  Undo2,
+} from 'lucide-react';
 import { useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
+import { useStore } from 'zustand';
 
 import { shortcutCombo } from '@/components/layout/shortcuts';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { SimpleTooltip } from '@/components/ui/tooltip';
 import { MAX_NAME_LENGTH, type Project } from '@/features/projects/schema';
 import { shortcutText } from '@/lib/hotkeys';
 import { formatDateTime } from '@/lib/time';
 
-import { useEditorStore } from './editor-store';
+import { useDocumentStore } from './document-store';
+import { useEditorStore, type SymmetryMode } from './editor-store';
+import type { EditorActions } from './use-editor-actions';
 import { nextZoomStep } from './zoom';
 
 function ProjectNameInput({ name, onRename }: { name: string; onRename: (name: string) => void }) {
@@ -43,22 +70,56 @@ function ProjectNameInput({ name, onRename }: { name: string; onRename: (name: s
       }}
       onBlur={commit}
       onKeyDown={onKeyDown}
-      className="h-7 min-w-0 flex-1 truncate rounded-sm border border-transparent bg-transparent px-1.5 text-[0.875rem] font-semibold hover:border-input focus-visible:border-ring focus-visible:bg-card focus-visible:outline-none sm:max-w-80"
+      className="h-7 min-w-0 flex-1 truncate rounded-sm border border-transparent bg-transparent px-1.5 text-[0.875rem] font-semibold hover:border-input focus-visible:border-ring focus-visible:bg-card focus-visible:outline-none sm:max-w-72"
     />
   );
 }
 
+function SaveStatus({ updatedAt }: { updatedAt: number }) {
+  const { t, i18n } = useTranslation();
+  const state = useEditorStore((s) => s.saveState);
+  const icon =
+    state === 'error' ? (
+      <CircleAlert className="size-3.5 text-destructive" aria-hidden />
+    ) : state === 'saved' ? (
+      <CircleCheck className="size-3.5 text-tile-green" aria-hidden />
+    ) : (
+      <LoaderCircle className="size-3.5 animate-spin" aria-hidden />
+    );
+  return (
+    <span
+      role="status"
+      className="hidden shrink-0 items-center gap-1 text-xs text-muted-foreground sm:inline-flex"
+      title={t('editor.savedAt', { time: formatDateTime(updatedAt, i18n.language) })}
+    >
+      {icon}
+      {t(`editor.saveState.${state}`)}
+    </span>
+  );
+}
+
+function tip(label: string, combo?: string): string {
+  return combo ? `${label} (${shortcutText(combo)})` : label;
+}
+
 interface EditorToolbarProps {
   project: Project;
+  actions: EditorActions;
   onRename: (name: string) => void;
   onDownload: () => void;
 }
 
-export function EditorToolbar({ project, onRename, onDownload }: EditorToolbarProps) {
+export function EditorToolbar({ project, actions, onRename, onDownload }: EditorToolbarProps) {
   const { t, i18n } = useTranslation();
   const zoom = useEditorStore((s) => s.zoom);
   const setZoom = useEditorStore((s) => s.setZoom);
   const requestFit = useEditorStore((s) => s.requestFit);
+  const view = useEditorStore((s) => s.view);
+  const setView = useEditorStore((s) => s.setView);
+  const setExportOpen = useEditorStore((s) => s.setExportDialogOpen);
+  const setHistoryOpen = useEditorStore((s) => s.setHistoryDialogOpen);
+  const canUndo = useStore(useDocumentStore.temporal, (s) => s.pastStates.length > 0);
+  const canRedo = useStore(useDocumentStore.temporal, (s) => s.futureStates.length > 0);
   const percent = new Intl.NumberFormat(i18n.language, { style: 'percent', maximumFractionDigits: 0 });
 
   return (
@@ -69,17 +130,50 @@ export function EditorToolbar({ project, onRename, onDownload }: EditorToolbarPr
         </Link>
         <ChevronRight className="size-3.5 shrink-0 text-muted-foreground rtl:rotate-180" aria-hidden />
         <ProjectNameInput key={project.name} name={project.name} onRename={onRename} />
-        <span
-          className="hidden shrink-0 items-center gap-1 text-xs text-muted-foreground sm:inline-flex"
-          title={t('editor.savedAt', { time: formatDateTime(project.updatedAt, i18n.language) })}
-        >
-          <CircleCheck className="size-3.5 text-tile-green" aria-hidden />
-          {t('editor.saved')}
-        </span>
+        <SaveStatus updatedAt={project.updatedAt} />
       </nav>
 
+      <div role="group" aria-label={t('editor.history.label')} className="flex items-center gap-0.5">
+        <SimpleTooltip label={tip(t('shortcuts.items.undo'), shortcutCombo('undo'))}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t('shortcuts.items.undo')}
+            disabled={!canUndo}
+            onClick={actions.undo}
+          >
+            <Undo2 aria-hidden className="rtl:-scale-x-100" />
+          </Button>
+        </SimpleTooltip>
+        <SimpleTooltip label={tip(t('shortcuts.items.redo'), shortcutCombo('redo'))}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t('shortcuts.items.redo')}
+            disabled={!canRedo}
+            onClick={actions.redo}
+          >
+            <Redo2 aria-hidden className="rtl:-scale-x-100" />
+          </Button>
+        </SimpleTooltip>
+        <SimpleTooltip label={t('editor.history.title')}>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={t('editor.history.title')}
+            onClick={() => {
+              setHistoryOpen(true);
+            }}
+          >
+            <History aria-hidden />
+          </Button>
+        </SimpleTooltip>
+      </div>
+
+      <span className="h-5 w-px bg-border" aria-hidden />
+
       <div role="group" aria-label={t('editor.zoom.label')} className="flex items-center gap-0.5">
-        <SimpleTooltip label={`${t('shortcuts.items.zoomOut')} (${shortcutText(shortcutCombo('zoomOut'))})`}>
+        <SimpleTooltip label={tip(t('shortcuts.items.zoomOut'), shortcutCombo('zoomOut'))}>
           <Button
             variant="ghost"
             size="icon-sm"
@@ -104,7 +198,7 @@ export function EditorToolbar({ project, onRename, onDownload }: EditorToolbarPr
             {percent.format(zoom)}
           </Button>
         </SimpleTooltip>
-        <SimpleTooltip label={`${t('shortcuts.items.zoomIn')} (${shortcutText(shortcutCombo('zoomIn'))})`}>
+        <SimpleTooltip label={tip(t('shortcuts.items.zoomIn'), shortcutCombo('zoomIn'))}>
           <Button
             variant="ghost"
             size="icon-sm"
@@ -116,7 +210,7 @@ export function EditorToolbar({ project, onRename, onDownload }: EditorToolbarPr
             <Plus aria-hidden />
           </Button>
         </SimpleTooltip>
-        <SimpleTooltip label={`${t('shortcuts.items.zoomFit')} (${shortcutText(shortcutCombo('zoomFit'))})`}>
+        <SimpleTooltip label={tip(t('shortcuts.items.zoomFit'), shortcutCombo('zoomFit'))}>
           <Button
             variant="ghost"
             size="icon-sm"
@@ -128,14 +222,96 @@ export function EditorToolbar({ project, onRename, onDownload }: EditorToolbarPr
         </SimpleTooltip>
       </div>
 
+      <DropdownMenu>
+        <SimpleTooltip label={t('editor.view.title')}>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" aria-label={t('editor.view.title')}>
+              <SlidersHorizontal aria-hidden />
+            </Button>
+          </DropdownMenuTrigger>
+        </SimpleTooltip>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel>{t('editor.view.title')}</DropdownMenuLabel>
+          <DropdownMenuCheckboxItem
+            checked={view.rulers}
+            onCheckedChange={(rulers) => {
+              setView({ rulers });
+            }}
+          >
+            {t('editor.view.rulers')}
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={view.grid}
+            onCheckedChange={(grid) => {
+              setView({ grid });
+            }}
+          >
+            {t('editor.view.grid')}
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={view.snap}
+            onCheckedChange={(snap) => {
+              setView({ snap });
+            }}
+          >
+            {t('editor.view.snap')}
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuCheckboxItem
+            checked={view.smartGuides}
+            onCheckedChange={(smartGuides) => {
+              setView({ smartGuides });
+            }}
+          >
+            {t('editor.view.smartGuides')}
+          </DropdownMenuCheckboxItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel>{t('editor.view.gridSize')}</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            value={String(view.gridSize)}
+            onValueChange={(value) => {
+              setView({ gridSize: Number(value) });
+            }}
+          >
+            {[10, 20, 50, 100].map((size) => (
+              <DropdownMenuRadioItem key={size} value={String(size)}>
+                {size} px
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel>{t('editor.view.symmetry')}</DropdownMenuLabel>
+          <DropdownMenuRadioGroup
+            value={view.symmetry}
+            onValueChange={(value) => {
+              setView({ symmetry: value as SymmetryMode });
+            }}
+          >
+            {(['off', 'vertical', 'horizontal', 'both'] as const).map((mode) => (
+              <DropdownMenuRadioItem key={mode} value={mode}>
+                {t(`editor.view.symmetry_${mode}`)}
+              </DropdownMenuRadioItem>
+            ))}
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
       <span className="h-5 w-px bg-border" aria-hidden />
 
-      <SimpleTooltip
-        label={`${t('file.downloadProject')} (${shortcutText(shortcutCombo('downloadProject'))})`}
-      >
-        <Button variant="outline" size="sm" onClick={onDownload}>
+      <SimpleTooltip label={tip(t('file.downloadProject'), shortcutCombo('downloadProject'))}>
+        <Button variant="ghost" size="sm" onClick={onDownload} aria-label={t('file.downloadProject')}>
           <Download aria-hidden />
-          <span className="hidden md:inline">{t('editor.download')}</span>
+          <span className="hidden xl:inline">{t('editor.download')}</span>
+        </Button>
+      </SimpleTooltip>
+      <SimpleTooltip label={tip(t('editor.export.title'), shortcutCombo('exportDesign'))}>
+        <Button
+          size="sm"
+          onClick={() => {
+            setExportOpen(true);
+          }}
+        >
+          <FileDown aria-hidden />
+          <span className="hidden md:inline">{t('editor.export.button')}</span>
         </Button>
       </SimpleTooltip>
     </div>

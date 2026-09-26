@@ -23,6 +23,47 @@ const STEPS: Record<number, (doc: UnknownRecord) => UnknownRecord> = {
       : doc.assets,
     texts: Array.isArray(doc.texts) ? doc.texts : [],
   }),
+  // v2 → v3: one ordered layer list (artwork below text, as it was painted),
+  // styles instead of a plain fill, per-part adjustments, kashida, alternates,
+  // guides and layer groups.
+  2: (doc) => {
+    const assets: unknown[] = Array.isArray(doc.assets) ? doc.assets : [];
+    const texts: unknown[] = Array.isArray(doc.texts) ? doc.texts : [];
+    const common = { locked: false, groupId: null };
+    const layers = [
+      ...assets.map((asset) => (isRecord(asset) ? { ...common, opacity: 1, ...asset } : asset)),
+      ...texts.map((text) => {
+        if (!isRecord(text)) return text;
+        const { fill, ...rest } = text;
+        return {
+          ...common,
+          name: '',
+          parts: {},
+          kashida: {},
+          features: [],
+          ...rest,
+          style: {
+            fill: { type: 'solid', color: typeof fill === 'string' ? fill : '#1a1a1a' },
+            stroke: null,
+            opacity: 1,
+            shadow: null,
+          },
+        };
+      }),
+    ];
+    const { assets: _assets, texts: _texts, ...rest } = doc;
+    return {
+      ...rest,
+      schemaVersion: 3,
+      artboards: Array.isArray(doc.artboards)
+        ? doc.artboards.map((artboard: unknown) =>
+            isRecord(artboard) ? { guides: [], ...artboard } : artboard,
+          )
+        : doc.artboards,
+      layers,
+      groups: [],
+    };
+  },
 };
 
 export function schemaVersionOf(doc: unknown): number | undefined {

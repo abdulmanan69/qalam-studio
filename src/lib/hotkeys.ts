@@ -38,6 +38,8 @@ interface KeyEventLike {
   shiftKey: boolean;
 }
 
+const CODE_KEYS: Record<string, string> = { '[': 'BracketLeft', ']': 'BracketRight', "'": 'Quote' };
+
 export function matchesCombo(event: KeyEventLike, combo: string, isMac: boolean = IS_MAC): boolean {
   const c = parseCombo(combo);
   const modPressed = isMac ? event.metaKey : event.ctrlKey;
@@ -51,6 +53,12 @@ export function matchesCombo(event: KeyEventLike, combo: string, isMac: boolean 
   if (/^[0-9]$/.test(c.key)) {
     if (c.shift !== event.shiftKey) return false;
     return event.code === `Digit${c.key}`;
+  }
+  // Brackets and quote are matched by physical key, so Shift combos work on any layout.
+  const code = CODE_KEYS[c.key];
+  if (code) {
+    if (c.shift !== event.shiftKey) return false;
+    return event.code === code;
   }
   // Symbols ("?", "/", "=") already encode shift in `event.key`.
   if (c.shift && !event.shiftKey) return false;

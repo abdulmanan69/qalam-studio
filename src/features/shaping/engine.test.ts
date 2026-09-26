@@ -59,7 +59,8 @@ describe('shaping', () => {
     const mark = glyphs.find((g) => g.kind === 'mark');
     expect(mark).toBeDefined();
     expect(mark?.xAdvance).toBe(0);
-    expect(mark?.cluster).toBe(0);
+    // Character-level clusters: the mark keeps its own index.
+    expect(mark?.cluster).toBe(1);
   });
 
   it('shapes Urdu Nastaliq without missing glyphs', () => {

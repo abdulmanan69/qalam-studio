@@ -1,7 +1,15 @@
 import { HarfBuzzFont } from './harfbuzz-font';
-import { layoutText, type LayoutFont } from './layout';
+import { findAlternates, layoutText, type LayoutFont } from './layout';
 import { OutlineFont } from './outline-font';
-import type { FontMetrics, LayoutOptions, ShapedGlyph, ShapeOptions, TextLayout } from './types';
+import type { Shape } from './parts';
+import type {
+  AlternateForm,
+  FontMetrics,
+  LayoutOptions,
+  ShapedGlyph,
+  ShapeOptions,
+  TextLayout,
+} from './types';
 
 export class FontNotLoadedError extends Error {
   constructor(public readonly fontKey: string) {
@@ -31,12 +39,24 @@ export class LoadedFont implements LayoutFont {
     return this.harfbuzz.shape(text, options);
   }
 
+  glyphShapes(glyphId: number): Shape[] {
+    return this.outlines.glyphShapes(glyphId);
+  }
+
+  glyphName(glyphId: number): string | null {
+    return this.harfbuzz.glyphName(glyphId);
+  }
+
   glyphPath(glyphId: number, x: number, y: number, fontSize: number): string {
     return this.outlines.glyphPath(glyphId, x, y, fontSize);
   }
 
   hasCodePoint(codePoint: number): boolean {
     return this.harfbuzz.hasCodePoint(codePoint);
+  }
+
+  alternateFeatureTags(): string[] {
+    return this.harfbuzz.alternateFeatureTags();
   }
 }
 
@@ -70,5 +90,11 @@ export class ShapingEngine {
 
   layout(fontKey: string, text: string, options: LayoutOptions): TextLayout {
     return layoutText(this.getFont(fontKey), text, options);
+  }
+
+  /** Alternate forms of the letter at `letterIndex` (UTF-16 index into `text`). */
+  alternates(fontKey: string, text: string, letterIndex: number, options: ShapeOptions): AlternateForm[] {
+    const font = this.getFont(fontKey);
+    return findAlternates(font, text, letterIndex, options, font.alternateFeatureTags());
   }
 }

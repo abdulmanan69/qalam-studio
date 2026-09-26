@@ -1,11 +1,31 @@
 import type { ShapingRequest, ShapingResponse } from './protocol';
-import type { LayoutOptions, TextLayout } from './types';
+import type { AlternateForm, LayoutOptions, ShapeOptions, TextLayout } from './types';
 
 export interface LayoutRequest {
   fontKey: string;
   fontUrl: string;
   text: string;
   options: LayoutOptions;
+}
+
+export interface AlternatesRequest {
+  fontKey: string;
+  fontUrl: string;
+  text: string;
+  letterIndex: number;
+  options: ShapeOptions;
+}
+
+/** JSON with object keys sorted at every level, so equal values give equal strings. */
+export function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`;
+  if (value !== null && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, v]) => v !== undefined)
+      .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+    return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
 }
 
 /** The subset of the Worker API the client uses (lets tests inject a fake). */
@@ -17,16 +37,13 @@ export interface WorkerLike {
 }
 
 interface Pending {
-  resolve: (layout: TextLayout) => void;
+  resolve: (response: Extract<ShapingResponse, { ok: true }>) => void;
   reject: (error: Error) => void;
 }
 
 /** Deterministic cache key: property and feature order do not matter. */
 export function layoutCacheKey(request: LayoutRequest): string {
-  const { features, ...rest } = request.options;
-  const sortedFeatures = Object.entries(features ?? {}).sort(([a], [b]) => a.localeCompare(b));
-  const optionEntries = Object.entries(rest).sort(([a], [b]) => a.localeCompare(b));
-  return JSON.stringify([request.fontKey, request.text, optionEntries, sortedFeatures]);
+  return stableStringify([request.fontKey, request.text, request.options]);
 }
 
 /**
@@ -64,32 +81,45 @@ export class ShapingClient {
     const existing = this.inflight.get(key);
     if (existing) return existing;
 
-    const promise = new Promise<TextLayout>((resolve, reject) => {
-      const id = this.nextId++;
-      const timer = setTimeout(() => {
-        if (this.pending.delete(id)) reject(new Error('Text shaping timed out'));
-      }, this.timeoutMs);
-      this.pending.set(id, {
-        resolve: (layout) => {
-          clearTimeout(timer);
-          resolve(layout);
-        },
-        reject: (error) => {
-          clearTimeout(timer);
-          reject(error);
-        },
-      });
-      this.getWorker().postMessage({ id, type: 'layout', ...request });
-    })
-      .then((layout) => {
-        this.remember(key, layout);
-        return layout;
+    const promise = this.send((id) => ({ id, type: 'layout', ...request }))
+      .then((response) => {
+        if (!('layout' in response)) throw new Error('Unexpected shaping response');
+        this.remember(key, response.layout);
+        return response.layout;
       })
       .finally(() => {
         this.inflight.delete(key);
       });
     this.inflight.set(key, promise);
     return promise;
+  }
+
+  /** Alternate forms the font offers for one letter (not cached: cheap and rarely repeated). */
+  alternates(request: AlternatesRequest): Promise<AlternateForm[]> {
+    return this.send((id) => ({ id, type: 'alternates', ...request })).then((response) => {
+      if (!('alternates' in response)) throw new Error('Unexpected shaping response');
+      return response.alternates;
+    });
+  }
+
+  private send(build: (id: number) => ShapingRequest): Promise<Extract<ShapingResponse, { ok: true }>> {
+    return new Promise((resolve, reject) => {
+      const id = this.nextId++;
+      const timer = setTimeout(() => {
+        if (this.pending.delete(id)) reject(new Error('Text shaping timed out'));
+      }, this.timeoutMs);
+      this.pending.set(id, {
+        resolve: (response) => {
+          clearTimeout(timer);
+          resolve(response);
+        },
+        reject: (error) => {
+          clearTimeout(timer);
+          reject(error);
+        },
+      });
+      this.getWorker().postMessage(build(id));
+    });
   }
 
   dispose(): void {
@@ -120,7 +150,7 @@ export class ShapingClient {
       const pending = this.pending.get(response.id);
       if (!pending) return;
       this.pending.delete(response.id);
-      if (response.ok) pending.resolve(response.layout);
+      if (response.ok) pending.resolve(response);
       else pending.reject(new Error(response.error));
     });
     worker.addEventListener('error', (event: ErrorEvent) => {

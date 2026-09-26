@@ -50,7 +50,7 @@ describe('.qalam file format', () => {
     const project = sampleProject();
     const broken = {
       ...project,
-      assets: [
+      layers: [
         {
           id: 'a1',
           kind: 'svg',
@@ -61,7 +61,11 @@ describe('.qalam file format', () => {
           y: 0,
           width: 10,
           height: 10,
+          angle: 0,
+          opacity: 1,
           hidden: false,
+          locked: false,
+          groupId: null,
         },
       ],
     };
@@ -70,11 +74,16 @@ describe('.qalam file format', () => {
   });
 
   it('migrates project files from schema v1', () => {
-    const { texts: _texts, ...v2 } = sampleProject();
-    const v1 = { ...v2, schemaVersion: 1 };
+    const { layers: _layers, groups: _groups, ...rest } = sampleProject();
+    const v1 = {
+      ...rest,
+      schemaVersion: 1,
+      artboards: rest.artboards.map(({ guides: _guides, ...a }) => a),
+      assets: [],
+    };
     const result = parseQalamFile(JSON.stringify({ format: 'qalam', formatVersion: 1, project: v1 }));
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.project.texts).toEqual([]);
+    if (result.ok) expect(result.project.layers).toEqual([]);
   });
 
   it('rejects projects from a newer schema version', () => {

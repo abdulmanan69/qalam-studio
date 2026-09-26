@@ -25,6 +25,11 @@ const fontEntrySchema = z.object({
   languages: z.array(z.string().min(2).max(8)).min(1),
   /** Recommended line-height multiplier for new text in this font. */
   lineHeight: z.number().min(0.3).max(4).default(1),
+  /**
+   * How letters are extended (kashida): with tatweel characters (Naskh) or by
+   * stretching the joining stroke (Nastaliq, Ruqaa — tatweel is not idiomatic there).
+   */
+  kashida: z.enum(['tatweel', 'stretch']).default('tatweel'),
   /** Default OpenType features for this font. */
   features: z.record(z.string().length(4), z.union([z.boolean(), z.number()])).default({}),
 });

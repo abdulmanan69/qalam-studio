@@ -18,3 +18,4 @@ Thumbs.db
 *.log
 *.tsbuildinfo
 graphify-out
+.playwright-mcp

@@ -15,7 +15,29 @@ export type ShortcutId =
   | 'handTool'
   | 'textTool'
   | 'deleteLayer'
-  | 'deselect';
+  | 'deselect'
+  | 'undo'
+  | 'redo'
+  | 'copy'
+  | 'cut'
+  | 'paste'
+  | 'duplicate'
+  | 'selectAll'
+  | 'group'
+  | 'ungroup'
+  | 'bringForward'
+  | 'sendBackward'
+  | 'bringToFront'
+  | 'sendToBack'
+  | 'editLetters'
+  | 'kashidaTool'
+  | 'baselineTool'
+  | 'nudge'
+  | 'toggleGrid'
+  | 'toggleRulers'
+  | 'lockLayer'
+  | 'exportDesign'
+  | 'placeSvg';
 
 export interface ShortcutDefinition {
   id: ShortcutId;
@@ -44,6 +66,28 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = [
   { id: 'textTool', combo: 't', group: 'editor' },
   { id: 'deleteLayer', combo: 'delete', group: 'editor' },
   { id: 'deselect', combo: 'escape', group: 'editor' },
+  { id: 'undo', combo: 'mod+z', group: 'editor' },
+  { id: 'redo', combo: 'mod+shift+z', group: 'editor' },
+  { id: 'copy', combo: 'mod+c', group: 'editor' },
+  { id: 'cut', combo: 'mod+x', group: 'editor' },
+  { id: 'paste', combo: 'mod+v', group: 'editor' },
+  { id: 'duplicate', combo: 'mod+d', group: 'editor' },
+  { id: 'selectAll', combo: 'mod+a', group: 'editor' },
+  { id: 'group', combo: 'mod+g', group: 'editor' },
+  { id: 'ungroup', combo: 'mod+shift+g', group: 'editor' },
+  { id: 'bringForward', combo: 'mod+]', group: 'editor' },
+  { id: 'sendBackward', combo: 'mod+[', group: 'editor' },
+  { id: 'bringToFront', combo: 'mod+shift+]', group: 'editor' },
+  { id: 'sendToBack', combo: 'mod+shift+[', group: 'editor' },
+  { id: 'editLetters', combo: 'enter', group: 'editor' },
+  { id: 'kashidaTool', combo: 'k', group: 'editor' },
+  { id: 'baselineTool', combo: 'b', group: 'editor' },
+  { id: 'nudge', combo: 'arrowleft', group: 'editor' },
+  { id: 'toggleGrid', combo: "mod+'", group: 'editor' },
+  { id: 'toggleRulers', combo: 'shift+r', group: 'editor' },
+  { id: 'lockLayer', combo: 'mod+l', group: 'editor' },
+  { id: 'exportDesign', combo: 'mod+e', group: 'editor' },
+  { id: 'placeSvg', combo: 'mod+shift+i', group: 'editor' },
 ];
 
 export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = ['general', 'projects', 'editor'];

@@ -1,56 +1,140 @@
-import { Canvas, FabricImage, Group, Path, Rect, type FabricObject } from 'fabric';
+import {
+  ActiveSelection,
+  Canvas,
+  FabricImage,
+  Gradient,
+  Path,
+  Point,
+  Shadow,
+  type FabricObject,
+  type TPointerEvent,
+} from 'fabric';
 
-import type { SvgAsset, TextRun } from '@/features/projects/schema';
-import type { TextLayout } from '@/features/shaping/types';
+import type {
+  Artboard,
+  Guide,
+  Layer,
+  LayerStyle,
+  PartOverride,
+  SvgAsset,
+  TextRun,
+} from '@/features/projects/schema';
+import type { Box, TextLayout } from '@/features/shaping/types';
+import {
+  applyToPoint,
+  decompose,
+  invert,
+  multiply,
+  partTransformFromMatrix,
+  translate,
+  type Matrix,
+  type Point as XY,
+  type Transform,
+} from '@/lib/matrix';
+
+import type { EditLevel, EditorTool, ViewOptions } from '../editor-store';
+import {
+  assetMatrix,
+  buildUnits,
+  gradientVector,
+  hexToRgba,
+  joinPaths,
+  resolveParts,
+  textMatrix,
+  visiblePath,
+  type EditUnit,
+  type ResolvedPart,
+  type UnitLevel,
+} from '../units';
+import { collectSnapTargets, snapBox, type SnapLine, type SnapTargets } from './snapping';
 
 /**
  * Fabric.js scene for one artboard. Framework-free: the React wrapper feeds
  * it document state (`sync`) and receives user edits through callbacks.
  *
- * Document coordinates are artboard pixels; every object uses a top-left
- * origin so `left/top` map directly to the document's `x/y`.
+ * Geometry comes from `units.ts` (plain matrices). Each Fabric object's world
+ * matrix is  W = M · T(anchor),  where M maps the layer's own coordinates to
+ * the artboard and `anchor` is the point of those coordinates at the object's
+ * center. After the user drags, rotates or scales an object, the new layer
+ * matrix is  M' = W' · T(−anchor);  for letter parts the change in layout
+ * coordinates is  D = M⁻¹ · W' · T(−anchor),  applied to each part.
  */
 
-export interface LayerTransform {
-  x: number;
-  y: number;
-  /** Negative values mean mirrored. */
-  scaleX: number;
-  scaleY: number;
-  angle: number;
+export interface StageLayer {
+  layer: Layer;
+  /** Text only; undefined while shaping (the previous drawing is kept). */
+  layout?: TextLayout;
 }
 
-export type StageChange =
-  | ({ kind: 'text'; id: string } & LayerTransform)
-  | { kind: 'asset'; id: string; x: number; y: number; width: number; height: number; angle: number };
+export interface StageEdit {
+  layerId: string;
+  level: UnitLevel;
+  lockMarks: boolean;
+  selectedUnits: readonly string[];
+}
+
+export interface StageScene {
+  artboard: Artboard;
+  /** Layers of this artboard, bottom to top. */
+  layers: readonly StageLayer[];
+  selectedIds: readonly string[];
+  edit: StageEdit | null;
+  tool: EditorTool;
+  view: ViewOptions;
+}
+
+export type LayerChange =
+  | { id: string; kind: 'text'; transform: Transform }
+  | { id: string; kind: 'svg'; x: number; y: number; angle: number; width: number; height: number };
 
 export interface StageCallbacks {
-  onSelect: (id: string | null) => void;
-  onChange: (change: StageChange) => void;
+  selectLayers: (ids: string[]) => void;
+  selectUnits: (ids: string[]) => void;
+  /** Double-click: open a text layer for editing, or go one level deeper. */
+  drillDown: (layerId: string, unitId: string | null) => void;
+  exitEdit: () => void;
+  changeLayers: (changes: LayerChange[]) => void;
+  changeParts: (layerId: string, overrides: Record<string, PartOverride>) => void;
+  addGuide: (axis: Guide['axis'], position: number) => void;
+  moveGuide: (id: string, position: number | null) => void;
+  previewKashida: (layerId: string, letter: number, value: number) => void;
+  commitKashida: (layerId: string, letter: number, value: number) => void;
 }
 
-export interface StageTextLayer {
-  run: TextRun;
-  /** Undefined while the run is being shaped; an existing drawing is kept meanwhile. */
-  layout: TextLayout | undefined;
+interface ObjectInfo {
+  layerId: string;
+  /** Unit id when this object is a unit of the edited layer. */
+  unitId: string | null;
+  /** Layer-space point at the object's center (see file comment). */
+  anchor: XY;
+  /** Layer matrix M at build time. */
+  matrix: Matrix;
+  /** For SVG images: natural size of the bitmap (its scale is width / naturalWidth). */
+  natural?: { width: number; height: number };
 }
 
-interface TextEntry {
-  kind: 'text';
-  object: Group;
-  layout: TextLayout;
-  fill: string;
+interface LayerEntry {
+  /** Identity of what was drawn; unchanged signature = keep the objects. */
+  signature: unknown[];
+  objects: FabricObject[];
+  /** Pending SVG load. */
+  token?: number;
 }
 
-interface AssetEntry {
-  kind: 'asset';
-  object: FabricImage | null;
-  svg: string;
-  token: number;
-  latest: SvgAsset;
+interface KashidaDrag {
+  layerId: string;
+  letter: number;
+  startX: number;
+  startValue: number;
+  fontSize: number;
+  matrix: Matrix;
+  value: number;
 }
 
-type Entry = TextEntry | AssetEntry;
+interface GuideDrag {
+  guide: Guide;
+  position: number;
+}
 
 const SELECTION_STYLE = {
   borderColor: '#2f6fa3',
@@ -63,120 +147,99 @@ const SELECTION_STYLE = {
   padding: 4,
 };
 
-const EPSILON = 1e-6;
+const UNIT_STYLE = {
+  ...SELECTION_STYLE,
+  borderColor: '#d9480f',
+  cornerStrokeColor: '#d9480f',
+  cornerSize: 8,
+  padding: 2,
+};
+
+const GUIDE_COLOR = '#00a3c4';
+const SNAP_COLOR = '#e8408a';
+const SNAP_DISTANCE_PX = 6;
+const GUIDE_HIT_PX = 5;
 
 export function svgDataUrl(svg: string): string {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
-/** Build the Fabric group for a laid-out text run: one path per visible glyph. */
-export function buildTextGroup(layout: TextLayout, fill: string): Group {
-  // An invisible box keeps the group's bounds equal to the layout box, so the
-  // selection frame is stable while typing and includes the full line height.
-  const box = new Rect({
-    left: 0,
-    top: 0,
-    originX: 'left',
-    originY: 'top',
-    width: Math.max(1, layout.width),
-    height: Math.max(1, layout.height),
-    fill: 'rgba(0,0,0,0)',
-    strokeWidth: 0,
-    selectable: false,
-    evented: false,
-  });
-  const glyphs = layout.glyphs
-    .filter((glyph) => glyph.path.length > 0)
-    .map(
-      (glyph) =>
-        new Path(glyph.path, {
-          fill,
-          stroke: null,
-          strokeWidth: 0,
-          objectCaching: false,
-          selectable: false,
-          evented: false,
-        }),
-    );
-  return new Group([box, ...glyphs], {
-    originX: 'left',
-    originY: 'top',
-    subTargetCheck: false,
-    interactive: false,
-    ...SELECTION_STYLE,
-  });
-}
-
-function toFabricTransform(t: LayerTransform) {
-  return {
-    left: t.x,
-    top: t.y,
+/** Place a Fabric object so that its world matrix equals `m` (skew-free). */
+export function setObjectMatrix(object: FabricObject, m: Matrix): void {
+  const t = decompose(m);
+  object.set({
+    angle: t.angle,
     scaleX: Math.abs(t.scaleX),
     scaleY: Math.abs(t.scaleY),
     flipX: t.scaleX < 0,
     flipY: t.scaleY < 0,
-    angle: t.angle,
-  };
+    skewX: 0,
+    skewY: 0,
+  });
+  object.setPositionByOrigin(new Point(t.x, t.y), 'center', 'center');
+  object.setCoords();
 }
 
-function readTransform(object: FabricObject): LayerTransform {
-  return {
-    x: object.left,
-    y: object.top,
-    scaleX: object.flipX ? -object.scaleX : object.scaleX,
-    scaleY: object.flipY ? -object.scaleY : object.scaleY,
-    angle: object.angle,
-  };
+function worldMatrix(object: FabricObject): Matrix {
+  const m = object.calcTransformMatrix();
+  return [m[0], m[1], m[2], m[3], m[4], m[5]];
 }
 
-function applyTransform(object: FabricObject, t: LayerTransform): void {
-  const next = toFabricTransform(t);
-  const changed =
-    Math.abs(object.left - next.left) > EPSILON ||
-    Math.abs(object.top - next.top) > EPSILON ||
-    Math.abs(object.scaleX - next.scaleX) > EPSILON ||
-    Math.abs(object.scaleY - next.scaleY) > EPSILON ||
-    Math.abs(object.angle - next.angle) > EPSILON ||
-    object.flipX !== next.flipX ||
-    object.flipY !== next.flipY;
-  if (changed) {
-    object.set(next);
-    object.setCoords();
-  }
-}
-
-function assetTransform(asset: SvgAsset, image: FabricImage): LayerTransform {
-  return {
-    x: asset.x,
-    y: asset.y,
-    scaleX: asset.width / Math.max(1, image.width),
-    scaleY: asset.height / Math.max(1, image.height),
-    angle: asset.angle,
-  };
+function applyStyle(object: FabricObject, style: LayerStyle): void {
+  const fill =
+    style.fill.type === 'solid'
+      ? style.fill.color
+      : new Gradient({
+          type: 'linear',
+          gradientUnits: 'percentage',
+          coords: gradientVector(style.fill.angle),
+          colorStops: style.fill.stops.map((s) => ({ offset: s.offset, color: s.color })),
+        });
+  object.set({
+    fill,
+    stroke: style.stroke && style.stroke.width > 0 ? style.stroke.color : null,
+    strokeWidth: style.stroke?.width ?? 0,
+    strokeLineJoin: 'round',
+    paintFirst: 'stroke',
+    opacity: style.opacity,
+    shadow: style.shadow
+      ? new Shadow({
+          color: hexToRgba(style.shadow.color, style.shadow.opacity),
+          blur: style.shadow.blur,
+          offsetX: style.shadow.offsetX,
+          offsetY: style.shadow.offsetY,
+        })
+      : null,
+  });
 }
 
 export class ArtboardStage {
   private readonly canvas: Canvas;
-  private readonly entries = new Map<string, Entry>();
-  private readonly idOf = new WeakMap<FabricObject, string>();
-  private order: string[] = [];
-  private muteSelection = false;
+  private readonly entries = new Map<string, LayerEntry>();
+  private readonly info = new WeakMap<FabricObject, ObjectInfo>();
+  private scene: StageScene | null = null;
+  private muted = 0;
   private disposed = false;
   private nextToken = 1;
+  private snapTargets: SnapTargets | null = null;
+  private snapLines: SnapLine[] = [];
+  private kashidaDrag: KashidaDrag | null = null;
+  private guideDrag: GuideDrag | null = null;
 
   constructor(
     element: HTMLCanvasElement,
     private readonly callbacks: StageCallbacks,
   ) {
     this.canvas = new Canvas(element, {
-      selection: false,
+      selection: true,
       preserveObjectStacking: true,
       uniformScaling: true,
       controlsAboveOverlay: true,
       stopContextMenu: true,
-    });
-    this.canvas.on('object:modified', ({ target }) => {
-      this.handleModified(target);
+      targetFindTolerance: 4,
+      selectionColor: 'rgba(47,111,163,0.08)',
+      selectionBorderColor: '#2f6fa3',
+      enableRetinaScaling: true,
     });
     this.canvas.on('selection:created', () => {
       this.emitSelection();
@@ -185,7 +248,30 @@ export class ArtboardStage {
       this.emitSelection();
     });
     this.canvas.on('selection:cleared', () => {
-      if (!this.muteSelection) this.callbacks.onSelect(null);
+      this.emitSelection();
+    });
+    this.canvas.on('object:moving', ({ target }) => {
+      this.snapMoving(target);
+    });
+    this.canvas.on('object:modified', ({ target }) => {
+      this.snapTargets = null;
+      this.snapLines = [];
+      this.handleModified(target);
+    });
+    this.canvas.on('mouse:dblclick', ({ target }) => {
+      this.handleDoubleClick(target);
+    });
+    this.canvas.on('mouse:down', (event) => {
+      this.handleMouseDown(event.e, event.target);
+    });
+    this.canvas.on('mouse:move', (event) => {
+      this.handleMouseMove(event.e);
+    });
+    this.canvas.on('mouse:up', () => {
+      this.handleMouseUp();
+    });
+    this.canvas.on('after:render', ({ ctx }) => {
+      this.drawOverlay(ctx);
     });
   }
 
@@ -196,42 +282,34 @@ export class ArtboardStage {
     this.canvas.requestRenderAll();
   }
 
-  setBackground(color: string): void {
-    this.canvas.backgroundColor = color;
-    this.canvas.requestRenderAll();
-  }
+  /** Reconcile the scene with the document and editor state. */
+  sync(scene: StageScene): void {
+    const previous = this.scene;
+    this.scene = scene;
+    this.canvas.backgroundColor = scene.artboard.background;
+    const interactive = scene.tool === 'select';
+    this.canvas.skipTargetFind = scene.tool === 'hand';
+    this.canvas.selection = interactive;
+    this.canvas.defaultCursor =
+      scene.tool === 'kashida' ? 'ew-resize' : scene.tool === 'baseline' ? 'row-resize' : 'default';
 
-  /** Disable hit-testing (e.g. while the hand tool pans the view). */
-  setInteractive(interactive: boolean): void {
-    this.canvas.skipTargetFind = !interactive;
-    if (!interactive) this.withMutedSelection(() => this.canvas.discardActiveObject());
-    this.canvas.requestRenderAll();
-  }
-
-  /** Reconcile the scene with the document. Paint order: artwork, then text. */
-  sync(assets: readonly SvgAsset[], texts: readonly StageTextLayer[]): void {
-    const wanted = new Set<string>([...assets.map((a) => a.id), ...texts.map((t) => t.run.id)]);
-    for (const [id, entry] of this.entries) {
-      if (!wanted.has(id)) {
-        if (entry.object) this.canvas.remove(entry.object);
-        this.entries.delete(id);
-      }
-    }
-    for (const asset of assets) this.syncAsset(asset);
-    for (const text of texts) this.syncText(text);
-    this.order = [...assets.map((a) => a.id), ...texts.map((t) => t.run.id)];
-    this.applyOrder();
-    this.canvas.requestRenderAll();
-  }
-
-  select(id: string | null): void {
-    const object = id ? this.entries.get(id)?.object : null;
-    this.withMutedSelection(() => {
-      if (object?.visible) {
-        if (this.canvas.getActiveObject() !== object) this.canvas.setActiveObject(object);
-      } else if (this.canvas.getActiveObject()) {
+    const wanted = new Set(scene.layers.map((l) => l.layer.id));
+    this.withMuted(() => {
+      if (
+        previous &&
+        (previous.edit?.layerId !== scene.edit?.layerId || previous.edit?.level !== scene.edit?.level)
+      ) {
         this.canvas.discardActiveObject();
       }
+      for (const [id, entry] of this.entries) {
+        if (!wanted.has(id)) {
+          for (const object of entry.objects) this.canvas.remove(object);
+          this.entries.delete(id);
+        }
+      }
+      for (const item of scene.layers) this.syncLayer(item, scene);
+      this.applyOrder(scene);
+      this.applySelection(scene);
     });
     this.canvas.requestRenderAll();
   }
@@ -242,48 +320,165 @@ export class ArtboardStage {
     void this.canvas.dispose();
   }
 
-  private syncText({ run, layout }: StageTextLayer): void {
-    const existing = this.entries.get(run.id);
-    const current = existing?.kind === 'text' ? existing : undefined;
-    // Keep the current drawing while a new layout is pending (or unchanged).
-    if (current && (!layout || (current.layout === layout && current.fill === run.fill))) {
-      applyTransform(current.object, run);
-      current.object.visible = !run.hidden;
+  // ————————————————————————————————————————— building
+
+  private syncLayer(item: StageLayer, scene: StageScene): void {
+    const { layer } = item;
+    const edit = scene.edit?.layerId === layer.id ? scene.edit : null;
+    const editingOther = scene.edit !== null && !edit;
+    const selectable = scene.tool === 'select' && !layer.locked && !editingOther;
+    const existing = this.entries.get(layer.id);
+
+    if (layer.kind === 'svg') {
+      this.syncAsset(layer, existing, selectable, editingOther);
       return;
     }
-    if (!layout) return;
-    const group = buildTextGroup(layout, run.fill);
-    applyTransform(group, run);
-    group.visible = !run.hidden;
-    this.replaceObject(run.id, existing?.object ?? null, group);
-    this.entries.set(run.id, { kind: 'text', object: group, layout, fill: run.fill });
+    if (!item.layout) {
+      // Shaping in progress: keep the previous drawing, but follow the transform.
+      if (existing) this.updateInteractivity(existing, selectable, editingOther, layer.hidden);
+      return;
+    }
+    const signature: unknown[] = [layer, item.layout, edit?.level, edit?.lockMarks];
+    if (existing && sameSignature(existing.signature, signature)) {
+      this.updateInteractivity(existing, selectable && !edit, editingOther, layer.hidden, edit !== null);
+      return;
+    }
+    const objects = edit
+      ? this.buildEditObjects(layer, item.layout, edit)
+      : this.buildTextObject(layer, item.layout);
+    if (existing) for (const object of existing.objects) this.canvas.remove(object);
+    for (const object of objects) this.canvas.add(object);
+    const entry: LayerEntry = { signature, objects };
+    this.entries.set(layer.id, entry);
+    this.updateInteractivity(entry, selectable && !edit, editingOther, layer.hidden, edit !== null);
   }
 
-  private syncAsset(asset: SvgAsset): void {
-    const existing = this.entries.get(asset.id);
-    if (existing?.kind === 'asset' && existing.svg === asset.svg) {
-      existing.latest = asset;
-      if (existing.object) {
-        applyTransform(existing.object, assetTransform(asset, existing.object));
-        existing.object.visible = !asset.hidden;
-      }
+  private updateInteractivity(
+    entry: LayerEntry,
+    selectable: boolean,
+    dimmed: boolean,
+    hidden: boolean,
+    editing = false,
+  ): void {
+    for (const object of entry.objects) {
+      const isUnit = this.info.get(object)?.unitId != null;
+      const canSelect = editing ? isUnit && this.scene?.tool === 'select' : selectable;
+      object.set({ selectable: canSelect, evented: canSelect, visible: !hidden });
+      if (!editing) object.set({ opacity: this.baseOpacity(object) * (dimmed ? 0.35 : 1) });
+    }
+  }
+
+  private baseOpacity(object: FabricObject): number {
+    const info = this.info.get(object);
+    const layer = info ? this.findLayer(info.layerId) : undefined;
+    if (!layer) return 1;
+    return layer.kind === 'svg' ? layer.opacity : layer.style.opacity;
+  }
+
+  private findLayer(id: string): Layer | undefined {
+    return this.scene?.layers.find((l) => l.layer.id === id)?.layer;
+  }
+
+  private buildTextObject(run: TextRun, layout: TextLayout): FabricObject[] {
+    const d = visiblePath(resolveParts(run, layout));
+    if (!d) return [];
+    const path = new Path(d, { objectCaching: false, ...SELECTION_STYLE });
+    applyStyle(path, run.style);
+    const m = textMatrix(run);
+    this.place(path, {
+      layerId: run.id,
+      unitId: null,
+      matrix: m,
+      anchor: { x: path.pathOffset.x, y: path.pathOffset.y },
+    });
+    return [path];
+  }
+
+  private buildEditObjects(run: TextRun, layout: TextLayout, edit: StageEdit): FabricObject[] {
+    const m = textMatrix(run);
+    const parts = resolveParts(run, layout);
+    const showHidden = edit.level === 'part';
+    const { units, rest } = buildUnits(
+      showHidden ? parts : parts.filter((p) => !p.hidden),
+      edit.level,
+      edit.lockMarks,
+    );
+    const objects: FabricObject[] = [];
+    const restPath = joinPaths(rest);
+    if (restPath) {
+      const path = new Path(restPath, { objectCaching: false, selectable: false, evented: false });
+      applyStyle(path, run.style);
+      path.set({ opacity: run.style.opacity * 0.55 });
+      this.place(path, {
+        layerId: run.id,
+        unitId: null,
+        matrix: m,
+        anchor: { x: path.pathOffset.x, y: path.pathOffset.y },
+      });
+      objects.push(path);
+    }
+    for (const unit of units) {
+      const d = joinPaths(unit.parts);
+      if (!d) continue;
+      const path = new Path(d, { objectCaching: false, perPixelTargetFind: true, ...UNIT_STYLE });
+      applyStyle(path, run.style);
+      if (unit.parts.every((p) => p.hidden)) path.set({ opacity: 0.25 });
+      this.place(path, {
+        layerId: run.id,
+        unitId: unit.id,
+        matrix: m,
+        anchor: { x: path.pathOffset.x, y: path.pathOffset.y },
+      });
+      objects.push(path);
+    }
+    return objects;
+  }
+
+  private place(object: FabricObject, info: ObjectInfo): void {
+    this.info.set(object, info);
+    setObjectMatrix(object, multiply(info.matrix, translate(info.anchor.x, info.anchor.y)));
+  }
+
+  private syncAsset(
+    asset: SvgAsset,
+    existing: LayerEntry | undefined,
+    selectable: boolean,
+    dimmed: boolean,
+  ): void {
+    const signature: unknown[] = [asset.svg];
+    const image = existing?.objects[0];
+    if (existing && sameSignature(existing.signature, signature)) {
+      if (image) this.placeAsset(image as FabricImage, asset);
+      this.updateInteractivity(existing, selectable, dimmed, asset.hidden);
       return;
     }
-    if (existing?.object) this.canvas.remove(existing.object);
+    if (existing) for (const object of existing.objects) this.canvas.remove(object);
     const token = this.nextToken++;
-    const entry: AssetEntry = { kind: 'asset', object: null, svg: asset.svg, token, latest: asset };
+    const entry: LayerEntry = { signature, objects: [], token };
     this.entries.set(asset.id, entry);
     FabricImage.fromURL(svgDataUrl(asset.svg))
-      .then((image) => {
+      .then((loaded) => {
         const current = this.entries.get(asset.id);
-        if (this.disposed || current?.kind !== 'asset' || current.token !== token) return;
-        image.set({ originX: 'left', originY: 'top', lockScalingFlip: true, ...SELECTION_STYLE });
-        applyTransform(image, assetTransform(current.latest, image));
-        image.visible = !current.latest.hidden;
-        this.idOf.set(image, asset.id);
-        current.object = image;
-        this.canvas.add(image);
-        this.applyOrder();
+        const latest = this.findLayer(asset.id);
+        if (this.disposed || current?.token !== token || latest?.kind !== 'svg') return;
+        loaded.set({ lockScalingFlip: true, ...SELECTION_STYLE });
+        this.placeAsset(loaded, latest);
+        current.objects = [loaded];
+        this.withMuted(() => {
+          this.canvas.add(loaded);
+          if (this.scene) {
+            const scene = this.scene;
+            const editingOther = scene.edit !== null;
+            this.updateInteractivity(
+              current,
+              scene.tool === 'select' && !latest.locked && !editingOther,
+              editingOther,
+              latest.hidden,
+            );
+            this.applyOrder(scene);
+            this.applySelection(scene);
+          }
+        });
         this.canvas.requestRenderAll();
       })
       .catch((error: unknown) => {
@@ -291,61 +486,433 @@ export class ArtboardStage {
       });
   }
 
-  private replaceObject(id: string, previous: FabricObject | null, next: FabricObject): void {
-    const wasActive = previous !== null && this.canvas.getActiveObject() === previous;
-    this.idOf.set(next, id);
-    // Removing the active object makes Fabric fire "selection:cleared"; this is
-    // a re-render of the same layer, so keep the selection silently.
-    this.withMutedSelection(() => {
-      if (previous) this.canvas.remove(previous);
-      this.canvas.add(next);
-      if (wasActive) this.canvas.setActiveObject(next);
+  private placeAsset(image: FabricImage, asset: SvgAsset): void {
+    const natural = { width: Math.max(1, image.width), height: Math.max(1, image.height) };
+    const m = multiply(assetMatrix(asset), [
+      asset.width / natural.width,
+      0,
+      0,
+      asset.height / natural.height,
+      0,
+      0,
+    ]);
+    this.info.set(image, {
+      layerId: asset.id,
+      unitId: null,
+      matrix: m,
+      anchor: { x: natural.width / 2, y: natural.height / 2 },
+      natural,
     });
+    setObjectMatrix(image, multiply(m, translate(natural.width / 2, natural.height / 2)));
   }
 
-  private applyOrder(): void {
+  private applyOrder(scene: StageScene): void {
     let index = 0;
-    for (const id of this.order) {
-      const object = this.entries.get(id)?.object;
-      if (object) {
+    for (const { layer } of scene.layers) {
+      for (const object of this.entries.get(layer.id)?.objects ?? []) {
         this.canvas.moveObjectTo(object, index);
         index += 1;
       }
     }
   }
 
-  private handleModified(target: FabricObject | undefined): void {
-    if (!target) return;
-    const id = this.idOf.get(target);
-    const entry = id ? this.entries.get(id) : undefined;
-    if (!id || !entry) return;
-    if (entry.kind === 'text') {
-      this.callbacks.onChange({ kind: 'text', id, ...readTransform(target) });
-    } else {
-      this.callbacks.onChange({
-        kind: 'asset',
-        id,
-        x: target.left,
-        y: target.top,
-        width: target.width * target.scaleX,
-        height: target.height * target.scaleY,
-        angle: target.angle,
+  private objectsFor(scene: StageScene): FabricObject[] {
+    if (scene.edit) {
+      const wanted = new Set(scene.edit.selectedUnits);
+      return (this.entries.get(scene.edit.layerId)?.objects ?? []).filter((o) => {
+        const unit = this.info.get(o)?.unitId;
+        return unit != null && wanted.has(unit);
       });
+    }
+    return scene.selectedIds.flatMap((id) => {
+      const layer = this.findLayer(id);
+      if (!layer || layer.hidden || layer.locked) return [];
+      return this.entries.get(id)?.objects ?? [];
+    });
+  }
+
+  private applySelection(scene: StageScene): void {
+    const wanted = scene.tool === 'select' ? this.objectsFor(scene).filter((o) => o.visible) : [];
+    const active = this.canvas.getActiveObject();
+    const current = active instanceof ActiveSelection ? active.getObjects() : active ? [active] : [];
+    if (current.length === wanted.length && current.every((o, i) => o === wanted[i])) return;
+    this.canvas.discardActiveObject();
+    if (wanted.length === 1 && wanted[0]) {
+      this.canvas.setActiveObject(wanted[0]);
+    } else if (wanted.length > 1) {
+      const selection = new ActiveSelection(wanted, { canvas: this.canvas, ...SELECTION_STYLE });
+      this.canvas.setActiveObject(selection);
     }
   }
 
+  // ————————————————————————————————————————— events
+
   private emitSelection(): void {
-    if (this.muteSelection) return;
+    if (this.muted > 0 || !this.scene) return;
     const active = this.canvas.getActiveObject();
-    this.callbacks.onSelect(active ? (this.idOf.get(active) ?? null) : null);
+    const objects = active instanceof ActiveSelection ? active.getObjects() : active ? [active] : [];
+    if (active instanceof ActiveSelection) active.set(this.scene.edit ? UNIT_STYLE : SELECTION_STYLE);
+    if (this.scene.edit) {
+      const units = objects.map((o) => this.info.get(o)?.unitId).filter((id): id is string => id != null);
+      this.callbacks.selectUnits(units);
+    } else {
+      const ids = [
+        ...new Set(objects.map((o) => this.info.get(o)?.layerId).filter((id): id is string => !!id)),
+      ];
+      this.callbacks.selectLayers(ids);
+    }
   }
 
-  private withMutedSelection(action: () => void): void {
-    this.muteSelection = true;
+  private handleDoubleClick(target: FabricObject | undefined): void {
+    const scene = this.scene;
+    if (!scene || scene.tool !== 'select') return;
+    const info = target ? this.info.get(target) : undefined;
+    if (!info) {
+      if (scene.edit) this.callbacks.exitEdit();
+      return;
+    }
+    const layer = this.findLayer(info.layerId);
+    if (layer?.kind !== 'text') return;
+    this.callbacks.drillDown(info.layerId, info.unitId);
+  }
+
+  private handleModified(target: FabricObject | undefined): void {
+    if (!target || !this.scene) return;
+    const objects = target instanceof ActiveSelection ? target.getObjects() : [target];
+    if (this.scene.edit) {
+      const layerId = this.scene.edit.layerId;
+      const item = this.scene.layers.find((l) => l.layer.id === layerId);
+      if (item?.layer.kind !== 'text' || !item.layout) return;
+      const parts = resolveParts(item.layer, item.layout);
+      const { units } = buildUnits(parts, this.scene.edit.level, this.scene.edit.lockMarks);
+      const byId = new Map(units.map((u) => [u.id, u]));
+      const overrides: Record<string, PartOverride> = {};
+      for (const object of objects) {
+        const info = this.info.get(object);
+        const unit = info?.unitId ? byId.get(info.unitId) : undefined;
+        if (!info || !unit) continue;
+        Object.assign(overrides, unitOverrides(unit, info, worldMatrix(object)));
+      }
+      if (Object.keys(overrides).length > 0) this.callbacks.changeParts(layerId, overrides);
+      return;
+    }
+    const changes: LayerChange[] = [];
+    for (const object of objects) {
+      const info = this.info.get(object);
+      const layer = info ? this.findLayer(info.layerId) : undefined;
+      if (!info || !layer) continue;
+      const m = multiply(worldMatrix(object), translate(-info.anchor.x, -info.anchor.y));
+      if (layer.kind === 'text') {
+        changes.push({ id: layer.id, kind: 'text', transform: decompose(m) });
+      } else {
+        const t = decompose(m);
+        const natural = info.natural ?? { width: layer.width, height: layer.height };
+        changes.push({
+          id: layer.id,
+          kind: 'svg',
+          x: t.x,
+          y: t.y,
+          angle: t.angle,
+          width: Math.max(1e-3, Math.abs(t.scaleX) * natural.width),
+          height: Math.max(1e-3, Math.abs(t.scaleY) * natural.height),
+        });
+      }
+    }
+    if (changes.length > 0) this.callbacks.changeLayers(changes);
+  }
+
+  private handleMouseDown(event: TPointerEvent, target: FabricObject | undefined): void {
+    const scene = this.scene;
+    if (!scene) return;
+    const p = this.canvas.getScenePoint(event);
+    if (scene.tool === 'baseline') {
+      this.callbacks.addGuide('y', Math.round(p.y));
+      return;
+    }
+    if (scene.tool === 'kashida') {
+      this.kashidaDrag = this.findKashidaTarget(p);
+      return;
+    }
+    if (scene.tool === 'select' && !target) {
+      const guide = this.guideAt(p);
+      if (guide) {
+        this.guideDrag = { guide, position: guide.position };
+        this.canvas.selection = false;
+      }
+    }
+  }
+
+  private handleMouseMove(event: TPointerEvent): void {
+    const p = this.canvas.getScenePoint(event);
+    const drag = this.kashidaDrag;
+    if (drag) {
+      const local = applyToPoint(invert(drag.matrix), p);
+      const raw = drag.startValue + (drag.startX - local.x) / drag.fontSize;
+      const value = Math.round(Math.min(20, Math.max(0, raw)) * 100) / 100;
+      if (value !== drag.value) {
+        drag.value = value;
+        this.callbacks.previewKashida(drag.layerId, drag.letter, value);
+      }
+      return;
+    }
+    const guideDrag = this.guideDrag;
+    if (guideDrag) {
+      guideDrag.position = Math.round(guideDrag.guide.axis === 'y' ? p.y : p.x);
+      this.canvas.requestRenderAll();
+      return;
+    }
+    if (this.scene?.tool === 'select') {
+      this.canvas.setCursor(
+        this.guideAt(p) ? (this.guideAt(p)?.axis === 'y' ? 'row-resize' : 'col-resize') : '',
+      );
+    }
+  }
+
+  private handleMouseUp(): void {
+    const drag = this.kashidaDrag;
+    if (drag) {
+      this.kashidaDrag = null;
+      this.callbacks.commitKashida(drag.layerId, drag.letter, drag.value);
+    }
+    const guideDrag = this.guideDrag;
+    if (guideDrag && this.scene) {
+      this.guideDrag = null;
+      this.canvas.selection = this.scene.tool === 'select';
+      const { width, height } = this.scene.artboard;
+      const limit = guideDrag.guide.axis === 'y' ? height : width;
+      const outside = guideDrag.position < -8 || guideDrag.position > limit + 8;
+      if (outside) this.callbacks.moveGuide(guideDrag.guide.id, null);
+      else if (guideDrag.position !== guideDrag.guide.position)
+        this.callbacks.moveGuide(guideDrag.guide.id, guideDrag.position);
+      this.canvas.requestRenderAll();
+    }
+    if (this.snapLines.length > 0) {
+      this.snapLines = [];
+      this.snapTargets = null;
+      this.canvas.requestRenderAll();
+    }
+  }
+
+  private guideAt(p: XY): Guide | null {
+    const scene = this.scene;
+    if (!scene) return null;
+    const tolerance = GUIDE_HIT_PX / this.canvas.getZoom();
+    return (
+      scene.artboard.guides.find((g) => Math.abs((g.axis === 'y' ? p.y : p.x) - g.position) <= tolerance) ??
+      null
+    );
+  }
+
+  /** The extendable letter of a visible text layer under the pointer (top-most first). */
+  private findKashidaTarget(p: XY): KashidaDrag | null {
+    const scene = this.scene;
+    if (!scene) return null;
+    for (const item of [...scene.layers].reverse()) {
+      const { layer, layout } = item;
+      if (layer.kind !== 'text' || layer.hidden || layer.locked || !layout) continue;
+      const m = textMatrix(layer);
+      const local = applyToPoint(invert(m), p);
+      const extendable = new Set(layout.extendable);
+      const pad = layout.fontSize * 0.05;
+      const hit = resolveParts(layer, layout).find(
+        (part) =>
+          part.kind === 'body' &&
+          extendable.has(part.letter) &&
+          local.x >= part.box.x - pad &&
+          local.x <= part.box.x + part.box.width + pad &&
+          local.y >= part.box.y - pad &&
+          local.y <= part.box.y + part.box.height + pad,
+      );
+      if (hit) {
+        const startValue = layer.kashida[String(hit.letter)] ?? 0;
+        return {
+          layerId: layer.id,
+          letter: hit.letter,
+          startX: local.x,
+          startValue,
+          fontSize: layer.fontSize,
+          matrix: m,
+          value: startValue,
+        };
+      }
+    }
+    return null;
+  }
+
+  // ————————————————————————————————————————— snapping and overlay
+
+  private snapMoving(target: FabricObject | undefined): void {
+    const scene = this.scene;
+    if (!target || !scene || (!scene.view.snap && !scene.view.smartGuides)) {
+      this.snapLines = [];
+      return;
+    }
+    if (!this.snapTargets) {
+      const moving = new Set(target instanceof ActiveSelection ? target.getObjects() : [target]);
+      const others: Box[] = [];
+      if (scene.view.smartGuides) {
+        for (const object of this.canvas.getObjects()) {
+          if (moving.has(object) || !object.visible || !object.evented) continue;
+          const r = object.getBoundingRect();
+          others.push({ x: r.left, y: r.top, width: r.width, height: r.height });
+        }
+      }
+      this.snapTargets = collectSnapTargets(scene.artboard, others, scene.view);
+    }
+    const r = target.getBoundingRect();
+    const box = { x: r.left, y: r.top, width: r.width, height: r.height };
+    const result = snapBox(
+      box,
+      this.baselinesOf(target),
+      this.snapTargets,
+      SNAP_DISTANCE_PX / this.canvas.getZoom(),
+    );
+    if (result.dx !== 0 || result.dy !== 0) {
+      target.set({ left: target.left + result.dx, top: target.top + result.dy });
+      target.setCoords();
+    }
+    this.snapLines = result.lines;
+  }
+
+  /** World y of the baselines of an unrotated text object (for snapping to baseline guides). */
+  private baselinesOf(target: FabricObject): number[] {
+    if (target instanceof ActiveSelection || this.scene?.edit) return [];
+    const info = this.info.get(target);
+    const item = info ? this.scene?.layers.find((l) => l.layer.id === info.layerId) : undefined;
+    if (!info || item?.layer.kind !== 'text' || !item.layout || Math.abs(target.angle % 360) > 0.01)
+      return [];
+    const m = multiply(worldMatrix(target), translate(-info.anchor.x, -info.anchor.y));
+    return item.layout.lines.map((line) => applyToPoint(m, { x: 0, y: line.baseline }).y);
+  }
+
+  private drawOverlay(ctx: CanvasRenderingContext2D): void {
+    const scene = this.scene;
+    if (!scene) return;
+    const zoom = this.canvas.getZoom();
+    const { width, height, guides } = scene.artboard;
+    const vpt = this.canvas.viewportTransform;
+    ctx.save();
+    ctx.transform(vpt[0], vpt[1], vpt[2], vpt[3], vpt[4], vpt[5]);
+    ctx.lineWidth = 1 / zoom;
+
+    if (scene.view.grid && scene.view.gridSize > 0) {
+      const step = scene.view.gridSize;
+      if (step * zoom >= 4) {
+        ctx.strokeStyle = 'rgba(47,111,163,0.14)';
+        ctx.beginPath();
+        for (let x = step; x < width; x += step) {
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+        }
+        for (let y = step; y < height; y += step) {
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+        }
+        ctx.stroke();
+      }
+    }
+
+    if (scene.view.symmetry !== 'off') {
+      ctx.strokeStyle = 'rgba(217,72,15,0.6)';
+      ctx.setLineDash([6 / zoom, 4 / zoom]);
+      ctx.beginPath();
+      if (scene.view.symmetry === 'vertical' || scene.view.symmetry === 'both') {
+        ctx.moveTo(width / 2, 0);
+        ctx.lineTo(width / 2, height);
+      }
+      if (scene.view.symmetry === 'horizontal' || scene.view.symmetry === 'both') {
+        ctx.moveTo(0, height / 2);
+        ctx.lineTo(width, height / 2);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    ctx.strokeStyle = GUIDE_COLOR;
+    ctx.beginPath();
+    for (const guide of guides) {
+      const position = this.guideDrag?.guide.id === guide.id ? this.guideDrag.position : guide.position;
+      if (guide.axis === 'y') {
+        ctx.moveTo(0, position);
+        ctx.lineTo(width, position);
+      } else {
+        ctx.moveTo(position, 0);
+        ctx.lineTo(position, height);
+      }
+    }
+    ctx.stroke();
+
+    if (this.snapLines.length > 0) {
+      ctx.strokeStyle = SNAP_COLOR;
+      ctx.beginPath();
+      for (const line of this.snapLines) {
+        if (line.axis === 'x') {
+          ctx.moveTo(line.position, line.from);
+          ctx.lineTo(line.position, line.to);
+        } else {
+          ctx.moveTo(line.from, line.position);
+          ctx.lineTo(line.to, line.position);
+        }
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  private withMuted(action: () => void): void {
+    this.muted += 1;
     try {
       action();
     } finally {
-      this.muteSelection = false;
+      this.muted -= 1;
     }
   }
+
+  /** Debug helper for tests: a readable summary of the scene objects. */
+  describe(): { layerId: string; unitId: string | null; kind: string }[] {
+    return this.canvas.getObjects().flatMap((object) => {
+      const info = this.info.get(object);
+      const layer = info ? this.findLayer(info.layerId) : undefined;
+      return info && layer ? [{ layerId: info.layerId, unitId: info.unitId, kind: layer.kind }] : [];
+    });
+  }
 }
+
+function sameSignature(a: readonly unknown[], b: readonly unknown[]): boolean {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
+/**
+ * New part adjustments after a unit object was transformed to world matrix W'.
+ * Exported for tests.
+ */
+export function unitOverrides(
+  unit: EditUnit,
+  info: Pick<ObjectInfo, 'matrix' | 'anchor'>,
+  world: Matrix,
+): Record<string, PartOverride> {
+  const d = multiply(multiply(invert(info.matrix), world), translate(-info.anchor.x, -info.anchor.y));
+  const result: Record<string, PartOverride> = {};
+  for (const part of unit.parts) {
+    result[part.key] = nextOverride(part, multiply(d, part.matrix));
+  }
+  return result;
+}
+
+function nextOverride(part: ResolvedPart, m: Matrix): PartOverride {
+  const t = partTransformFromMatrix(part.center, m);
+  const round = (v: number) => Math.round(v * 1000) / 1000;
+  const next: PartOverride = {
+    dx: round(t.dx),
+    dy: round(t.dy),
+    angle: round(t.angle),
+    scaleX: round(t.scaleX) || 1,
+    scaleY: round(t.scaleY) || 1,
+  };
+  if (part.override?.kind) next.kind = part.override.kind;
+  if (part.override?.hidden) next.hidden = true;
+  if (part.override?.link) next.link = part.override.link;
+  return next;
+}
+
+export type { EditLevel };

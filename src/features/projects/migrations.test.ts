@@ -33,9 +33,50 @@ describe('project migrations', () => {
     const migrated = migrateProject(v1Project);
     expect(schemaVersionOf(migrated)).toBe(PROJECT_SCHEMA_VERSION);
     const parsed = projectSchema.parse(migrated);
-    expect(parsed.texts).toEqual([]);
-    expect(parsed.assets[0]?.angle).toBe(0);
+    expect(parsed.layers).toHaveLength(1);
+    expect(parsed.layers[0]).toMatchObject({
+      kind: 'svg',
+      angle: 0,
+      opacity: 1,
+      locked: false,
+      groupId: null,
+    });
+    expect(parsed.artboards[0]?.guides).toEqual([]);
+    expect(parsed.groups).toEqual([]);
     expect(parsed.name).toBe('Old project');
+  });
+
+  it('turns v2 text runs into styled layers above the artwork', () => {
+    const v2 = {
+      ...structuredClone(v1Project),
+      schemaVersion: 2,
+      assets: v1Project.assets.map((a) => ({ ...a, angle: 0 })),
+      texts: [
+        {
+          id: 't1',
+          kind: 'text',
+          artboardId: 'a1',
+          text: 'سلام',
+          fontId: 'amiri',
+          language: 'ar',
+          fontSize: 48,
+          lineHeight: 1,
+          align: 'start',
+          fill: '#aa0000',
+          x: 1,
+          y: 2,
+          scaleX: 1,
+          scaleY: 1,
+          angle: 0,
+          hidden: false,
+        },
+      ],
+    };
+    const parsed = projectSchema.parse(migrateProject(v2));
+    expect(parsed.layers.map((l) => l.kind)).toEqual(['svg', 'text']);
+    const text = parsed.layers[1];
+    expect(text?.kind === 'text' && text.style.fill).toEqual({ type: 'solid', color: '#aa0000' });
+    expect(text?.kind === 'text' && text.parts).toEqual({});
   });
 
   it('does not mutate its input', () => {

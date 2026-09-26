@@ -1,50 +1,50 @@
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { Artboard, SvgAsset, TextRun } from '@/features/projects/schema';
-import type { TextLayout } from '@/features/shaping/types';
+import type { Guide } from '@/features/projects/schema';
 import { isEditableTarget } from '@/lib/hotkeys';
 import { cn } from '@/lib/utils';
 
 import { ArtboardCanvas } from './canvas/ArtboardCanvas';
-import type { StageChange } from './canvas/artboard-stage';
+import type { StageCallbacks, StageScene } from './canvas/artboard-stage';
 import { useEditorStore } from './editor-store';
-import { computeFitZoom, maxZoomForArtboard, VIEWPORT_PADDING } from './zoom';
+import { Ruler } from './Ruler';
+import { computeFitZoom, maxZoomForArtboard, RULER_SIZE, VIEWPORT_PADDING } from './zoom';
 
 interface CanvasViewportProps {
-  artboard: Artboard;
-  assets: readonly SvgAsset[];
-  texts: readonly TextRun[];
-  layouts: ReadonlyMap<string, TextLayout>;
-  onChange: (change: StageChange) => void;
+  scene: StageScene;
+  callbacks: StageCallbacks;
+  onAddGuide: (axis: Guide['axis'], position: number) => void;
 }
 
 /**
  * Scrollable, zoomable view of one artboard. Owns zoom (fit, Ctrl/⌘ + wheel
- * at the cursor, pinch) and panning (hand tool, Space, middle mouse); the
- * Fabric.js canvas inside handles selection and transforms.
+ * at the cursor, two-finger pinch), panning (hand tool, Space, middle mouse)
+ * and the rulers; the Fabric.js canvas inside handles selection and transforms.
  */
-export function CanvasViewport({ artboard, assets, texts, layouts, onChange }: CanvasViewportProps) {
+export function CanvasViewport({ scene, callbacks, onAddGuide }: CanvasViewportProps) {
   const { t } = useTranslation();
   const viewportRef = useRef<HTMLDivElement>(null);
+  const artboardRef = useRef<HTMLDivElement>(null);
   const zoom = useEditorStore((s) => s.zoom);
   const tool = useEditorStore((s) => s.tool);
   const fitRequest = useEditorStore((s) => s.fitRequest);
-  const selectedId = useEditorStore((s) => s.selectedId);
+  const rulers = useEditorStore((s) => s.view.rulers);
   const setZoom = useEditorStore((s) => s.setZoom);
   const setMaxZoom = useEditorStore((s) => s.setMaxZoom);
   const select = useEditorStore((s) => s.select);
 
   const [spaceHeld, setSpaceHeld] = useState(false);
   const [panning, setPanning] = useState(false);
+  const [scrollTick, setScrollTick] = useState(0);
   const panStart = useRef<{ x: number; y: number; left: number; top: number } | null>(null);
   /** Zoom anchor: keep this artboard point under this screen point after re-render. */
   const anchor = useRef<{ artX: number; artY: number; screenX: number; screenY: number } | null>(null);
 
+  const { artboard } = scene;
   const handActive = tool === 'hand' || spaceHeld;
   const { width: artW, height: artH } = artboard;
 
-  // Keep the canvas within browser size limits for this artboard.
   useEffect(() => {
     setMaxZoom(maxZoomForArtboard({ width: artW, height: artH }, window.devicePixelRatio));
   }, [artW, artH, setMaxZoom]);
@@ -68,28 +68,69 @@ export function CanvasViewport({ artboard, assets, texts, layouts, onChange }: C
     el.scrollTop = VIEWPORT_PADDING + a.artY * zoom - a.screenY;
   }, [zoom]);
 
-  // Ctrl/⌘ + wheel (and trackpad pinch, which browsers report as ctrl+wheel) zooms at the cursor.
+  // Ctrl/⌘ + wheel (and trackpad pinch, reported as ctrl+wheel) zooms at the cursor;
+  // two-finger touch pinch zooms at the fingers' midpoint.
   useEffect(() => {
     const el = viewportRef.current;
     if (!el) return;
-    const onWheel = (event: WheelEvent) => {
-      if (!event.ctrlKey && !event.metaKey) return;
-      event.preventDefault();
+    const zoomAt = (clientX: number, clientY: number, next: number) => {
       const current = useEditorStore.getState().zoom;
       const rect = el.getBoundingClientRect();
-      const screenX = event.clientX - rect.left;
-      const screenY = event.clientY - rect.top;
+      const screenX = clientX - rect.left;
+      const screenY = clientY - rect.top;
       anchor.current = {
         artX: (el.scrollLeft + screenX - VIEWPORT_PADDING) / current,
         artY: (el.scrollTop + screenY - VIEWPORT_PADDING) / current,
         screenX,
         screenY,
       };
-      setZoom(current * Math.exp(-event.deltaY * 0.0025));
+      setZoom(next);
+    };
+    const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return;
+      event.preventDefault();
+      zoomAt(event.clientX, event.clientY, useEditorStore.getState().zoom * Math.exp(-event.deltaY * 0.0025));
+    };
+    let pinch: { distance: number; zoom: number } | null = null;
+    const touchInfo = (touches: TouchList) => {
+      const a = touches[0];
+      const b = touches[1];
+      if (!a || !b) return null;
+      return {
+        distance: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY),
+        x: (a.clientX + b.clientX) / 2,
+        y: (a.clientY + b.clientY) / 2,
+      };
+    };
+    const onTouchStart = (event: TouchEvent) => {
+      const info = touchInfo(event.touches);
+      if (info && event.touches.length === 2) {
+        pinch = { distance: Math.max(1, info.distance), zoom: useEditorStore.getState().zoom };
+      }
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      const info = touchInfo(event.touches);
+      if (!pinch || !info || event.touches.length !== 2) return;
+      event.preventDefault();
+      zoomAt(info.x, info.y, pinch.zoom * (info.distance / pinch.distance));
+    };
+    const onTouchEnd = (event: TouchEvent) => {
+      if (event.touches.length < 2) pinch = null;
+    };
+    const onScroll = () => {
+      setScrollTick((n) => n + 1);
     };
     el.addEventListener('wheel', onWheel, { passive: false });
+    el.addEventListener('touchstart', onTouchStart, { passive: true, capture: true });
+    el.addEventListener('touchmove', onTouchMove, { passive: false, capture: true });
+    el.addEventListener('touchend', onTouchEnd, { capture: true });
+    el.addEventListener('scroll', onScroll, { passive: true });
     return () => {
       el.removeEventListener('wheel', onWheel);
+      el.removeEventListener('touchstart', onTouchStart, { capture: true });
+      el.removeEventListener('touchmove', onTouchMove, { capture: true });
+      el.removeEventListener('touchend', onTouchEnd, { capture: true });
+      el.removeEventListener('scroll', onScroll);
     };
   }, [setZoom]);
 
@@ -149,52 +190,78 @@ export function CanvasViewport({ artboard, assets, texts, layouts, onChange }: C
 
   const scaledW = artW * zoom;
   const scaledH = artH * zoom;
-  const empty = assets.length === 0 && texts.length === 0;
+  const empty = scene.layers.length === 0;
 
   return (
+    // The canvas is a drawing surface with an x axis to the right, also in right-to-left UIs.
     <div
-      ref={viewportRef}
-      role="region"
-      aria-label={t('editor.canvas')}
-      className={cn(
-        'checkerboard relative min-h-0 min-w-0 flex-1 overflow-auto',
-        handActive && (panning ? 'cursor-grabbing' : 'cursor-grab'),
-      )}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={endPan}
-      onPointerCancel={endPan}
+      dir="ltr"
+      className="relative grid min-h-0 min-w-0 flex-1"
+      style={{
+        gridTemplateColumns: rulers ? `${String(RULER_SIZE)}px minmax(0,1fr)` : 'minmax(0,1fr)',
+        gridTemplateRows: rulers ? `${String(RULER_SIZE)}px minmax(0,1fr)` : 'minmax(0,1fr)',
+      }}
     >
+      {rulers && (
+        <>
+          <div className="border-e border-b border-border bg-card" aria-hidden />
+          <Ruler
+            axis="x"
+            zoom={zoom}
+            viewportRef={viewportRef}
+            artboardRef={artboardRef}
+            tick={scrollTick}
+            onAddGuide={(position) => {
+              onAddGuide('x', position);
+            }}
+          />
+          <Ruler
+            axis="y"
+            zoom={zoom}
+            viewportRef={viewportRef}
+            artboardRef={artboardRef}
+            tick={scrollTick}
+            onAddGuide={(position) => {
+              onAddGuide('y', position);
+            }}
+          />
+        </>
+      )}
       <div
-        className="flex min-h-full min-w-full items-center justify-center"
-        style={{ width: scaledW + VIEWPORT_PADDING * 2, height: scaledH + VIEWPORT_PADDING * 2 }}
+        ref={viewportRef}
+        role="region"
+        aria-label={t('editor.canvas')}
+        className={cn(
+          'checkerboard relative min-h-0 min-w-0 overflow-auto',
+          handActive && (panning ? 'cursor-grabbing' : 'cursor-grab'),
+        )}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endPan}
+        onPointerCancel={endPan}
       >
         <div
-          className={cn(
-            'relative shrink-0 shadow-popover',
-            handActive && '[&_[data-canvas-root]]:pointer-events-none',
-          )}
-          style={{ width: scaledW, height: scaledH, background: artboard.background }}
-          role="group"
-          aria-label={t('editor.artboardLabel', { name: artboard.name, width: artW, height: artH })}
-          data-testid="artboard"
+          className="flex min-h-full min-w-full items-center justify-center"
+          style={{ width: scaledW + VIEWPORT_PADDING * 2, height: scaledH + VIEWPORT_PADDING * 2 }}
         >
-          <ArtboardCanvas
-            artboard={artboard}
-            assets={assets}
-            texts={texts}
-            layouts={layouts}
-            zoom={zoom}
-            interactive={!handActive}
-            selectedId={selectedId}
-            onSelect={select}
-            onChange={onChange}
-          />
-          {empty && (
-            <p className="pointer-events-none absolute inset-0 flex items-center justify-center p-4 text-center text-xs text-black/55">
-              {t('editor.emptyArtboard')}
-            </p>
-          )}
+          <div
+            ref={artboardRef}
+            className={cn(
+              'relative shrink-0 shadow-popover',
+              handActive && '[&_[data-canvas-root]]:pointer-events-none',
+            )}
+            style={{ width: scaledW, height: scaledH, background: artboard.background }}
+            role="group"
+            aria-label={t('editor.artboardLabel', { name: artboard.name, width: artW, height: artH })}
+            data-testid="artboard"
+          >
+            <ArtboardCanvas scene={scene} zoom={zoom} callbacks={callbacks} />
+            {empty && (
+              <p className="pointer-events-none absolute inset-0 flex items-center justify-center p-4 text-center text-xs text-black/55">
+                {t('editor.emptyArtboard')}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>

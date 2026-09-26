@@ -185,7 +185,29 @@
       "handTool": "Hand tool (or hold Space)",
       "textTool": "Add text",
       "deleteLayer": "Delete selected layer",
-      "deselect": "Deselect"
+      "deselect": "Deselect",
+      "undo": "Undo",
+      "redo": "Redo",
+      "copy": "Copy",
+      "cut": "Cut",
+      "paste": "Paste",
+      "duplicate": "Duplicate",
+      "selectAll": "Select all",
+      "group": "Group layers",
+      "ungroup": "Ungroup",
+      "bringForward": "Bring forward",
+      "sendBackward": "Send backward",
+      "bringToFront": "Bring to front",
+      "sendToBack": "Send to back",
+      "editLetters": "Edit letters (go one level deeper)",
+      "kashidaTool": "Kashida tool",
+      "baselineTool": "Baseline guide tool",
+      "nudge": "Nudge by 1 px (Shift: 10 px)",
+      "toggleGrid": "Show or hide the grid",
+      "toggleRulers": "Show or hide rulers",
+      "lockLayer": "Lock or unlock layer",
+      "exportDesign": "Export PNG, SVG or PDF",
+      "placeSvg": "Place SVG artwork"
     }
   },
   "quickActions": {
@@ -338,7 +360,10 @@
       "hand": "Hand",
       "text": "Text",
       "baseline": "Baseline guide",
-      "kashida": "Kashida stretch"
+      "kashida": "Kashida",
+      "placeSvg": "Place SVG artwork",
+      "kashidaHint": "Drag a joining letter sideways to lengthen it (kashida). Release to apply.",
+      "baselineHint": "Click on the artboard to add a horizontal baseline guide. Drag guides to move them; drag off the artboard to remove."
     },
     "layers": {
       "title": "Layers",
@@ -346,7 +371,12 @@
       "untitledArtwork": "Artwork",
       "untitledText": "Text",
       "show": "Show {{name}}",
-      "hide": "Hide {{name}}"
+      "hide": "Hide {{name}}",
+      "actions": "Layer actions",
+      "groupName": "Group {{index}}",
+      "hint": "Ctrl/Shift-click to select several. Double-click to rename. Drag to reorder.",
+      "lock": "Lock {{name}}",
+      "unlock": "Unlock {{name}}"
     },
     "properties": {
       "title": "Properties",
@@ -371,11 +401,164 @@
       "shapingFailed": "This text could not be shaped: {{error}}",
       "shapingUnavailable": "Text shaping needs a browser with Web Worker support.",
       "storage": "Storage",
-      "storageLocal": "This browser (IndexedDB)"
+      "storageLocal": "This browser (IndexedDB)",
+      "scaleX": "Width scale",
+      "scaleY": "Height scale"
     },
     "missing": {
       "title": "Project not found",
       "description": "It may have been deleted, or it was created in another browser."
+    },
+    "saveState": {
+      "saved": "Saved",
+      "pending": "Unsaved changes",
+      "saving": "Saving…",
+      "error": "Not saved"
+    },
+    "artboards": {
+      "title": "Artboards",
+      "add": "Add artboard",
+      "name": "Name",
+      "duplicate": "Duplicate {{name}}",
+      "delete": "Delete {{name}}",
+      "layerCount_one": "{{count}} layer",
+      "layerCount_other": "{{count}} layers"
+    },
+    "assets": {
+      "title": "Assets"
+    },
+    "history": {
+      "label": "History",
+      "title": "Version history",
+      "description": "Snapshots are taken automatically every few minutes while you work. Save a named version before big changes.",
+      "labelField": "Version name",
+      "labelPlaceholder": "e.g. Before recoloring",
+      "save": "Save version",
+      "saved": "Version saved",
+      "list": "Saved versions",
+      "empty": "No versions yet.",
+      "auto": "Automatic snapshot",
+      "manual": "Saved version",
+      "restore": "Restore",
+      "restored": "Version restored",
+      "undoHint": "Press Ctrl+Z to go back.",
+      "restoreFailed": "This version could not be restored.",
+      "delete": "Delete version"
+    },
+    "view": {
+      "title": "View options",
+      "rulers": "Rulers",
+      "grid": "Grid",
+      "snap": "Snap to guides and grid",
+      "smartGuides": "Smart guides",
+      "gridSize": "Grid size",
+      "symmetry": "Symmetry axes",
+      "symmetry_off": "Off",
+      "symmetry_vertical": "Vertical",
+      "symmetry_horizontal": "Horizontal",
+      "symmetry_both": "Both"
+    },
+    "export": {
+      "button": "Export",
+      "title": "Export design",
+      "description": "Text is exported as outlines, so the file looks the same everywhere, with no fonts needed.",
+      "format": "Format",
+      "formatHint_png": "Image for sharing and printing. Resolution is saved in the file.",
+      "formatHint_svg": "Scalable vector file for design tools, cutters and the web.",
+      "formatHint_pdf": "Vector PDF for print; one page per artboard. Shadows are not included.",
+      "resolution": "Resolution",
+      "customDpi": "Custom DPI",
+      "pixels": "{{width}} × {{height}} px at {{dpi}} DPI",
+      "clamped": "reduced to the largest size this browser can draw",
+      "transparent": "Transparent background",
+      "allArtboards": "All artboards ({{count}})",
+      "run": "Export",
+      "done": "Export finished",
+      "failed": "Export failed"
+    },
+    "guides": {
+      "title": "Guides",
+      "baseline": "Baseline",
+      "vertical": "Vertical",
+      "empty": "No guides. Use the Baseline tool (B) or click a ruler to add one.",
+      "hint": "Text baselines and objects snap to guides while you drag.",
+      "horizontalAt": "Horizontal guide (y)",
+      "verticalAt": "Vertical guide (x)",
+      "remove": "Remove guide",
+      "addVertical": "Click to add a vertical guide",
+      "addHorizontal": "Click to add a horizontal guide"
+    },
+    "arrange": {
+      "title": "Arrange",
+      "titleMany": "Arrange {{count}} layers",
+      "toArtboard": "Aligns to the artboard.",
+      "toSelection": "Aligns to the selection.",
+      "left": "Align left",
+      "centerX": "Align horizontal centers",
+      "right": "Align right",
+      "top": "Align top",
+      "centerY": "Align vertical centers",
+      "bottom": "Align bottom",
+      "distributeX": "Distribute horizontally",
+      "distributeY": "Distribute vertically",
+      "flipX": "Flip horizontally",
+      "flipY": "Flip vertically",
+      "mirrorCopyX": "Mirror copy ⟷",
+      "mirrorCopyY": "Mirror copy ↕"
+    },
+    "parts": {
+      "title": "Letters & dots",
+      "level": "Edit level",
+      "levels": {
+        "object": "Whole",
+        "word": "Words",
+        "letter": "Letters",
+        "part": "Parts"
+      },
+      "levelHint": "Double-click the text on the canvas to go one level deeper; Esc goes back.",
+      "lockMarks": "Keep dots with their letter",
+      "nothingSelected": "Click a word, letter or dot on the canvas.",
+      "selected_one": "{{count}} selected ({{parts}} parts)",
+      "selected_other": "{{count}} selected ({{parts}} parts)",
+      "reset": "Reset position",
+      "resetAll": "Reset all letter adjustments",
+      "hide": "Hide",
+      "show": "Show",
+      "merge": "Merge parts",
+      "split": "Split parts",
+      "kind": "Part type",
+      "kinds": {
+        "auto": "Auto",
+        "body": "Body",
+        "dot": "Dot",
+        "mark": "Mark"
+      },
+      "detected": "Detected: {{kinds}}",
+      "kashida": "Kashida (letter extension)",
+      "kashidaValue": "{{value}} em",
+      "alternates": "Alternate forms",
+      "noAlternates": "This font has no alternate forms for this letter.",
+      "defaultForm": "Default",
+      "alternate": "Alternate {{tag}} {{value}}"
+    },
+    "style": {
+      "title": "Style",
+      "fill": "Fill",
+      "fillType": "Fill type",
+      "solid": "Solid",
+      "linear": "Gradient",
+      "stop": "Color {{index}}",
+      "angle": "Gradient angle",
+      "stroke": "Outline",
+      "strokeColor": "Outline color",
+      "strokeWidth": "Width",
+      "opacity": "Opacity",
+      "shadow": "Shadow",
+      "shadowColor": "Shadow color",
+      "shadow_blur": "Blur",
+      "shadow_offsetX": "Offset X",
+      "shadow_offsetY": "Offset Y",
+      "shadow_opacity": "Strength"
     }
   },
   "templates": {
@@ -416,5 +599,29 @@
     "title": "Page not found",
     "description": "The page you were looking for does not exist.",
     "backHome": "Back to Home"
+  },
+  "ornaments": {
+    "color": "Ornament color",
+    "place": "Place {{name}}",
+    "license": "Original designs, free to use in any work.",
+    "categories": {
+      "ornament": "Ornaments",
+      "frame": "Frames",
+      "pattern": "Background patterns"
+    },
+    "items": {
+      "rosette": "Rosette",
+      "star": "Eight-pointed star",
+      "medallion": "Medallion",
+      "divider": "Divider",
+      "corner": "Corner flourish",
+      "frameClassic": "Classic frame",
+      "frameArch": "Arch frame",
+      "patternStars": "Star tiling",
+      "patternHex": "Hexagons",
+      "patternLattice": "Lattice",
+      "patternDots": "Dots",
+      "patternWaves": "Waves"
+    }
   }
 }

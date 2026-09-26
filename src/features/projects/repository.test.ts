@@ -122,8 +122,8 @@ describe('projects repository', () => {
       'Border',
     );
     expect(project.artboards[0]).toMatchObject({ presetId: 'square-post', width: 1080, height: 1080 });
-    expect(project.assets).toHaveLength(1);
-    expect(project.assets[0]).toMatchObject({
+    expect(project.layers).toHaveLength(1);
+    expect(project.layers[0]).toMatchObject({
       kind: 'svg',
       x: 0,
       y: 0,
@@ -131,6 +131,6 @@ describe('projects repository', () => {
       height: 1080,
       hidden: false,
     });
-    expect(project.assets[0]?.artboardId).toBe(project.artboards[0]?.id);
+    expect(project.layers[0]?.artboardId).toBe(project.artboards[0]?.id);
   });
 });

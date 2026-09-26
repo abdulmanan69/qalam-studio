@@ -16,7 +16,8 @@
       "file": "noto-nastaliq-urdu/NotoNastaliqUrdu-Variable.ttf",
       "license": "noto-nastaliq-urdu/OFL.txt",
       "languages": ["ur", "fa", "ar"],
-      "lineHeight": 1
+      "lineHeight": 1,
+      "kashida": "stretch"
     },
     {
       "id": "gulzar",
@@ -25,7 +26,8 @@
       "file": "gulzar/Gulzar-Regular.ttf",
       "license": "gulzar/OFL.txt",
       "languages": ["ur", "fa", "ar"],
-      "lineHeight": 1
+      "lineHeight": 1,
+      "kashida": "stretch"
     },
     {
       "id": "amiri",
@@ -61,7 +63,8 @@
       "file": "aref-ruqaa/ArefRuqaa-Regular.ttf",
       "license": "aref-ruqaa/OFL.txt",
       "languages": ["ar"],
-      "lineHeight": 1
+      "lineHeight": 1,
+      "kashida": "stretch"
     },
     {
       "id": "reem-kufi",
