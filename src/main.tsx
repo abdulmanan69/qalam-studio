@@ -14,6 +14,14 @@ if (!container) {
   throw new Error('Root element #root not found in index.html');
 }
 
+// Offline support (production builds only). The user decides when to reload
+// into a new version, so an update never interrupts unsaved work.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  void import('./pwa').then(({ registerServiceWorker }) => {
+    registerServiceWorker();
+  });
+}
+
 createRoot(container).render(
   <StrictMode>
     <AppProviders>

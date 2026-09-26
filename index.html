@@ -9,6 +9,7 @@
     />
     <meta name="theme-color" content="#3f5465" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
     <title>Qalam Studio</title>
     <script>
       // Apply the saved theme before first paint to avoid a light/dark flash.
@@ -20,6 +21,11 @@
             pref === 'dark' ||
             (pref !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
           if (dark) document.documentElement.classList.add('dark');
+          var lang = localStorage.getItem('qalam.language');
+          if (lang === 'ur' || lang === 'ar' || lang === 'fa') {
+            document.documentElement.lang = lang;
+            document.documentElement.dir = 'rtl';
+          }
         } catch (e) {
           /* storage unavailable: fall back to light */
         }

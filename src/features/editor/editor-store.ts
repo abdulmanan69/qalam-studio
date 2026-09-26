@@ -1,7 +1,14 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
+import type { EditorActions } from './use-editor-actions';
 import { clampZoom, MAX_ZOOM } from './zoom';
+
+/**
+ * Commands of the open editor, for UI outside it (the main menu bar).
+ * `null` when no project is open.
+ */
+export const useEditorCommands = create<{ actions: EditorActions | null }>()(() => ({ actions: null }));
 
 export type EditorTool = 'select' | 'hand' | 'kashida' | 'baseline';
 

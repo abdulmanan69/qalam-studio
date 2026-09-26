@@ -17,12 +17,14 @@ import { useTranslation } from 'react-i18next';
 import { Link, useMatch, useNavigate } from 'react-router';
 
 import { useUiStore } from '@/app/ui-store';
-import { useEditorStore } from '@/features/editor/editor-store';
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuSub,
@@ -31,9 +33,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SimpleTooltip } from '@/components/ui/tooltip';
+import { useEditorCommands, useEditorStore, type EditLevel } from '@/features/editor/editor-store';
+import type { EditorActions } from '@/features/editor/use-editor-actions';
 import { useProject, useProjects } from '@/features/projects/hooks';
 import { useProjectActions } from '@/features/projects/use-project-actions';
-import { UI_LANGUAGES } from '@/i18n';
+import { setUiLanguage, UI_LANGUAGES } from '@/i18n';
 import { shortcutText } from '@/lib/hotkeys';
 import { formatRelativeTime } from '@/lib/time';
 import { useNow } from '@/lib/use-now';
@@ -59,20 +63,45 @@ function NavMenu({ label, children, wide = false }: { label: string; children: R
   );
 }
 
-/** Menu entry for a feature planned in a later release: visible for discoverability, not actionable. */
-function PlannedItem({ label, combo }: { label: string; combo?: string }) {
+/** Menu entry that runs an editor command; disabled when no editor is open. */
+function CommandItem({
+  label,
+  combo,
+  onSelect,
+}: {
+  label: string;
+  combo?: string;
+  onSelect: (actions: EditorActions) => void;
+}) {
+  const actions = useEditorCommands((s) => s.actions);
   return (
-    <DropdownMenuItem disabled>
+    <DropdownMenuItem
+      disabled={!actions}
+      onSelect={() => {
+        if (actions) onSelect(actions);
+      }}
+    >
       {label}
-      {combo && <DropdownMenuShortcut>{combo}</DropdownMenuShortcut>}
+      {combo && <DropdownMenuShortcut>{shortcutText(combo)}</DropdownMenuShortcut>}
     </DropdownMenuItem>
   );
 }
 
-function PlannedLabel() {
+/** Open the selected text layer (or the one being edited) at a drill-down level. */
+function enterLevel(level: EditLevel) {
+  const state = useEditorStore.getState();
+  const id = state.editLayerId ?? state.selectedIds.at(-1);
+  if (id) state.editLayer(id, level);
+}
+
+function LockMarksItem() {
   const { t } = useTranslation();
+  const lockMarks = useEditorStore((s) => s.lockMarks);
+  const setLockMarks = useEditorStore((s) => s.setLockMarks);
   return (
-    <DropdownMenuLabel className="tracking-normal normal-case">{t('nav.plannedHint')}</DropdownMenuLabel>
+    <DropdownMenuCheckboxItem checked={lockMarks} onCheckedChange={setLockMarks}>
+      {t('letters.lockMarks')}
+    </DropdownMenuCheckboxItem>
   );
 }
 
@@ -113,7 +142,7 @@ function RecentMenu() {
 }
 
 export function MainNav() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const openDialog = useUiStore((s) => s.openDialog);
   const actions = useProjectActions();
@@ -181,16 +210,32 @@ export function MainNav() {
         </NavMenu>
 
         <NavMenu label={t('nav.edit')}>
-          <PlannedItem label={t('edit.undo')} combo={shortcutText('mod+z')} />
-          <PlannedItem label={t('edit.redo')} combo={shortcutText('mod+shift+z')} />
+          <CommandItem label={t('edit.undo')} combo={shortcutCombo('undo')} onSelect={(a) => a.undo()} />
+          <CommandItem label={t('edit.redo')} combo={shortcutCombo('redo')} onSelect={(a) => a.redo()} />
           <DropdownMenuSeparator />
-          <PlannedItem label={t('edit.cut')} combo={shortcutText('mod+x')} />
-          <PlannedItem label={t('edit.copy')} combo={shortcutText('mod+c')} />
-          <PlannedItem label={t('edit.paste')} combo={shortcutText('mod+v')} />
-          <PlannedItem label={t('edit.duplicate')} combo={shortcutText('mod+d')} />
-          <PlannedItem label={t('edit.delete')} combo={shortcutText('delete')} />
+          <CommandItem label={t('edit.cut')} combo={shortcutCombo('cut')} onSelect={(a) => a.cut()} />
+          <CommandItem label={t('edit.copy')} combo={shortcutCombo('copy')} onSelect={(a) => a.copy()} />
+          <CommandItem
+            label={t('edit.paste')}
+            combo={shortcutCombo('paste')}
+            onSelect={(a) => void a.paste()}
+          />
+          <CommandItem
+            label={t('edit.duplicate')}
+            combo={shortcutCombo('duplicate')}
+            onSelect={(a) => a.duplicateSelection()}
+          />
+          <CommandItem
+            label={t('edit.delete')}
+            combo={shortcutCombo('deleteLayer')}
+            onSelect={(a) => a.deleteSelection()}
+          />
           <DropdownMenuSeparator />
-          <PlannedItem label={t('edit.selectAll')} combo={shortcutText('mod+a')} />
+          <CommandItem
+            label={t('edit.selectAll')}
+            combo={shortcutCombo('selectAll')}
+            onSelect={(a) => a.selectAll()}
+          />
         </NavMenu>
 
         <NavMenu label={t('nav.text')} wide>
@@ -208,22 +253,68 @@ export function MainNav() {
         </NavMenu>
 
         <NavMenu label={t('nav.letters')} wide>
-          <PlannedLabel />
-          <PlannedItem label={t('letters.alternates')} />
-          <PlannedItem label={t('letters.kashida')} />
-          <PlannedItem label={t('letters.splitParts')} />
-          <PlannedItem label={t('letters.reclassify')} />
-          <PlannedItem label={t('letters.lockMarks')} />
+          <CommandItem
+            label={t('shortcuts.items.editLetters')}
+            combo={shortcutCombo('editLetters')}
+            onSelect={() => {
+              enterLevel('letter');
+            }}
+          />
+          <CommandItem
+            label={t('letters.alternates')}
+            onSelect={() => {
+              enterLevel('letter');
+            }}
+          />
+          <CommandItem
+            label={t('letters.kashida')}
+            combo={shortcutCombo('kashidaTool')}
+            onSelect={() => {
+              useEditorStore.getState().setTool('kashida');
+            }}
+          />
+          <CommandItem
+            label={t('letters.splitParts')}
+            onSelect={() => {
+              enterLevel('part');
+            }}
+          />
+          <CommandItem
+            label={t('letters.reclassify')}
+            onSelect={() => {
+              enterLevel('part');
+            }}
+          />
+          <DropdownMenuSeparator />
+          <LockMarksItem />
         </NavMenu>
 
         <NavMenu label={t('nav.layers')} wide>
-          <PlannedLabel />
-          <PlannedItem label={t('layers.bringForward')} combo={shortcutText('mod+]')} />
-          <PlannedItem label={t('layers.sendBackward')} combo={shortcutText('mod+[')} />
-          <PlannedItem label={t('layers.group')} combo={shortcutText('mod+g')} />
-          <PlannedItem label={t('layers.ungroup')} combo={shortcutText('mod+shift+g')} />
-          <PlannedItem label={t('layers.lock')} />
-          <PlannedItem label={t('layers.hide')} />
+          <CommandItem
+            label={t('layers.bringForward')}
+            combo={shortcutCombo('bringForward')}
+            onSelect={(a) => a.reorder('forward')}
+          />
+          <CommandItem
+            label={t('layers.sendBackward')}
+            combo={shortcutCombo('sendBackward')}
+            onSelect={(a) => a.reorder('backward')}
+          />
+          <CommandItem label={t('layers.group')} combo={shortcutCombo('group')} onSelect={(a) => a.group()} />
+          <CommandItem
+            label={t('layers.ungroup')}
+            combo={shortcutCombo('ungroup')}
+            onSelect={(a) => a.ungroup()}
+          />
+          <CommandItem
+            label={t('layers.lock')}
+            combo={shortcutCombo('lockLayer')}
+            onSelect={(a) => a.toggleLocked(useEditorStore.getState().selectedIds)}
+          />
+          <CommandItem
+            label={t('layers.hide')}
+            onSelect={(a) => a.toggleHidden(useEditorStore.getState().selectedIds)}
+          />
         </NavMenu>
 
         <NavMenu label={t('nav.templates')}>
@@ -248,10 +339,16 @@ export function MainNav() {
             {t('export.project')}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <PlannedLabel />
-          <PlannedItem label={t('export.svg')} />
-          <PlannedItem label={t('export.png')} />
-          <PlannedItem label={t('export.pdf')} />
+          {(['svg', 'png', 'pdf'] as const).map((format) => (
+            <CommandItem
+              key={format}
+              label={t(`export.${format}`)}
+              combo={format === 'png' ? shortcutCombo('exportDesign') : undefined}
+              onSelect={() => {
+                useEditorStore.getState().setExportDialogOpen(true);
+              }}
+            />
+          ))}
         </NavMenu>
 
         <NavMenu label={t('nav.settings')}>
@@ -264,16 +361,13 @@ export function MainNav() {
               {t('settings.language')}
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
-              {UI_LANGUAGES.map((language) => (
-                <DropdownMenuItem key={language.code} disabled={!language.available} lang={language.code}>
-                  <span dir={language.dir}>{language.nativeName}</span>
-                  {!language.available && (
-                    <DropdownMenuShortcut className="font-sans">
-                      {t('settings.languageSoon')}
-                    </DropdownMenuShortcut>
-                  )}
-                </DropdownMenuItem>
-              ))}
+              <DropdownMenuRadioGroup value={i18n.language} onValueChange={setUiLanguage}>
+                {UI_LANGUAGES.filter((language) => language.available).map((language) => (
+                  <DropdownMenuRadioItem key={language.code} value={language.code} lang={language.code}>
+                    <span dir={language.dir}>{language.nativeName}</span>
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
             </DropdownMenuSubContent>
           </DropdownMenuSub>
           <DropdownMenuSeparator />

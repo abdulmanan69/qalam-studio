@@ -1,0 +1,669 @@
+{
+  "common": {
+    "cancel": "إلغاء",
+    "close": "إغلاق",
+    "save": "حفظ",
+    "delete": "حذف",
+    "open": "فتح",
+    "rename": "إعادة تسمية",
+    "duplicate": "تكرار",
+    "undo": "تراجع",
+    "loading": "جارٍ التحميل…",
+    "comingSoon": "قريبًا",
+    "offlineReady": "أصبح Qalam Studio جاهزًا للعمل دون اتصال.",
+    "updateAvailable": "يتوفر إصدار جديد من Qalam Studio.",
+    "reload": "إعادة التحميل"
+  },
+  "shell": {
+    "skipToContent": "انتقل إلى المحتوى الرئيسي"
+  },
+  "topBar": {
+    "home": "الصفحة الرئيسية لـ Qalam Studio",
+    "workspace": "مساحة العمل المحلية",
+    "workspaceHint": "مخزّنة في هذا المتصفح",
+    "workspaceMenu": "مساحة العمل والتفضيلات"
+  },
+  "nav": {
+    "label": "الرئيسي",
+    "home": "الرئيسية",
+    "recent": "المشاريع الأخيرة",
+    "file": "ملف",
+    "edit": "تحرير",
+    "text": "نص",
+    "letters": "الحروف",
+    "layers": "الطبقات",
+    "templates": "القوالب",
+    "export": "تصدير",
+    "settings": "الإعدادات",
+    "help": "مساعدة",
+    "plannedHint": "متوفر في إصدار قادم"
+  },
+  "file": {
+    "downloadProject": "تنزيل المشروع (.qalam)",
+    "closeProject": "إغلاق المشروع"
+  },
+  "edit": {
+    "undo": "تراجع",
+    "redo": "إعادة",
+    "cut": "قص",
+    "copy": "نسخ",
+    "paste": "لصق",
+    "duplicate": "تكرار",
+    "delete": "حذف",
+    "selectAll": "تحديد الكل"
+  },
+  "text": {
+    "addText": "إضافة نص…",
+    "editHint": "حدّد نصًا على لوح الرسم لتغيير خطه وحجمه ولونه."
+  },
+  "textDialog": {
+    "title": "إضافة نص",
+    "description": "اكتب النص أو الصقه. يُشكَّل بخط الخط العربي المحدد ويوضع في منتصف لوح الرسم.",
+    "placeholder": "اكتب هنا…",
+    "add": "إضافة إلى لوح الرسم"
+  },
+  "keyboard": {
+    "label": "لوحة المفاتيح على الشاشة",
+    "marksLabel": "علامات التشكيل",
+    "show": "إظهار لوحة المفاتيح",
+    "hide": "إخفاء لوحة المفاتيح",
+    "space": "مسافة",
+    "newline": "سطر جديد",
+    "zwnj": "فاصل غير واصل بعرض صفري (نيم فاصلة)",
+    "backspace": "حذف للخلف",
+    "marks": {
+      "fatha": "فتحة",
+      "kasra": "كسرة",
+      "damma": "ضمة",
+      "shadda": "شدة",
+      "sukun": "سكون",
+      "fathatan": "تنوين الفتح",
+      "kasratan": "تنوين الكسر",
+      "dammatan": "تنوين الضم",
+      "superscriptAlef": "ألف خنجرية",
+      "hamzaAbove": "همزة علوية",
+      "maddaAbove": "مدة علوية"
+    }
+  },
+  "languages": {
+    "ur": "الأردية",
+    "ar": "العربية",
+    "fa": "الفارسية",
+    "ku": "الكردية (السورانية)",
+    "ps": "البشتوية",
+    "sd": "السندية"
+  },
+  "fonts": {
+    "styles": {
+      "nastaliq": "نستعليق",
+      "naskh": "نسخ",
+      "thuluth": "ثلث",
+      "ruqaa": "رقعة",
+      "kufi": "كوفي",
+      "diwani": "ديواني",
+      "display": "عناوين"
+    }
+  },
+  "letters": {
+    "alternates": "أشكال بديلة للحروف…",
+    "kashida": "مدّ الكشيدة",
+    "splitParts": "تقسيم إلى أجزاء",
+    "reclassify": "إعادة تصنيف الجزء (جسم / نقطة / علامة)",
+    "lockMarks": "تثبيت النقاط والعلامات بالحرف"
+  },
+  "layers": {
+    "bringForward": "تقديم للأمام",
+    "sendBackward": "إرجاع للخلف",
+    "group": "تجميع",
+    "ungroup": "فك التجميع",
+    "lock": "قفل",
+    "hide": "إخفاء"
+  },
+  "export": {
+    "project": "ملف المشروع (.qalam)",
+    "svg": "SVG…",
+    "png": "PNG…",
+    "pdf": "PDF…"
+  },
+  "settings": {
+    "appearance": "المظهر",
+    "theme": {
+      "light": "فاتح",
+      "dark": "داكن",
+      "system": "مطابقة النظام"
+    },
+    "language": "اللغة",
+    "languageSoon": "قريبًا",
+    "clearData": "مسح البيانات المحلية…",
+    "clearDataTitle": "حذف جميع المشاريع المحلية؟",
+    "clearDataDescription": "سيؤدي هذا إلى حذف كل مشروع مخزّن في هذا المتصفح نهائيًا. نزّل ملفات .qalam أولًا إن أردت الاحتفاظ بها. لا يمكن التراجع عن هذا الإجراء.",
+    "clearDataConfirm": "حذف كل شيء",
+    "clearDataDone": "حُذفت جميع المشاريع المحلية."
+  },
+  "help": {
+    "shortcuts": "اختصارات لوحة المفاتيح",
+    "documentation": "التوثيق",
+    "reportIssue": "الإبلاغ عن مشكلة",
+    "about": "حول Qalam Studio"
+  },
+  "about": {
+    "version": "الإصدار {{version}}",
+    "description": "محرر خط عربي مفتوح المصدر للأردية والعربية والفارسية والكردية والبشتوية والسندية.",
+    "privacy": "لا تغادر مشاريعك جهازك أبدًا: كل شيء مخزّن في هذا المتصفح.",
+    "license": "الشيفرة منشورة بموجب رخصة MIT.",
+    "fonts": "تحتفظ الخطوط المضمّنة برخصة SIL Open Font License.",
+    "sourceCode": "الشيفرة المصدرية",
+    "author": "من إنشاء Abdul Manan"
+  },
+  "search": {
+    "label": "البحث في المشاريع والإجراءات",
+    "placeholder": "ابحث في المشاريع والإجراءات…",
+    "results": "نتائج البحث",
+    "actions": "الإجراءات",
+    "projects": "المشاريع",
+    "noResults": "لا توجد نتائج",
+    "darkMode": "التبديل إلى الوضع الداكن",
+    "lightMode": "التبديل إلى الوضع الفاتح"
+  },
+  "shortcuts": {
+    "title": "اختصارات لوحة المفاتيح",
+    "description": "اعمل بسرعة أكبر دون الفأرة. على macOS، يقابل Ctrl المفتاح ⌘ ويقابل Alt المفتاح ⌥.",
+    "groups": {
+      "general": "عام",
+      "projects": "المشاريع",
+      "editor": "المحرر"
+    },
+    "items": {
+      "focusSearch": "بحث",
+      "showShortcuts": "عرض اختصارات لوحة المفاتيح",
+      "newDesign": "تصميم جديد",
+      "openProject": "فتح ملف مشروع",
+      "importSvg": "استيراد SVG",
+      "downloadProject": "تنزيل المشروع (.qalam)",
+      "zoomIn": "تكبير",
+      "zoomOut": "تصغير",
+      "zoomFit": "ملاءمة لوح الرسم للنافذة",
+      "zoomActual": "تكبير إلى 100%",
+      "selectTool": "أداة التحديد",
+      "handTool": "أداة اليد (أو اضغط مع الاستمرار على Space)",
+      "textTool": "إضافة نص",
+      "deleteLayer": "حذف الطبقة المحددة",
+      "deselect": "إلغاء التحديد",
+      "undo": "تراجع",
+      "redo": "إعادة",
+      "copy": "نسخ",
+      "cut": "قص",
+      "paste": "لصق",
+      "duplicate": "تكرار",
+      "selectAll": "تحديد الكل",
+      "group": "تجميع الطبقات",
+      "ungroup": "فك التجميع",
+      "bringForward": "تقديم للأمام",
+      "sendBackward": "إرجاع للخلف",
+      "bringToFront": "إحضار إلى المقدمة",
+      "sendToBack": "إرسال إلى الخلفية",
+      "editLetters": "تحرير الحروف (الانتقال مستوى أعمق)",
+      "kashidaTool": "أداة الكشيدة",
+      "baselineTool": "أداة دليل خط الأساس",
+      "nudge": "تحريك بمقدار 1 px (مع Shift: ‏10 px)",
+      "toggleGrid": "إظهار الشبكة أو إخفاؤها",
+      "toggleRulers": "إظهار المساطر أو إخفاؤها",
+      "lockLayer": "قفل الطبقة أو فتحها",
+      "exportDesign": "تصدير PNG أو SVG أو PDF",
+      "placeSvg": "وضع رسم SVG"
+    }
+  },
+  "quickActions": {
+    "newDesign": "تصميم جديد",
+    "openProject": "فتح مشروع",
+    "templates": "القوالب",
+    "importSvg": "استيراد SVG",
+    "hints": {
+      "newDesign": "أنشئ تصميمًا فارغًا بحجم لوح رسم تختاره",
+      "openProject": "افتح ملف مشروع .qalam من حاسوبك",
+      "templates": "تصفّح تراكيب جاهزة",
+      "importSvg": "ابدأ تصميمًا جديدًا من ملف SVG"
+    }
+  },
+  "dashboard": {
+    "title": "الرئيسية",
+    "quickActions": "إجراءات سريعة",
+    "recent": {
+      "title": "المشاريع الأخيرة",
+      "name": "الاسم",
+      "artboard": "لوح الرسم",
+      "modified": "آخر تعديل",
+      "created": "تاريخ الإنشاء",
+      "actions": "الإجراءات",
+      "actionsFor": "إجراءات {{name}}",
+      "empty": "لا توجد مشاريع بعد",
+      "emptyHint": "أنشئ تصميمًا أو استورد ملف SVG للبدء.",
+      "showAll": "عرض الكل ({{count}})",
+      "showLess": "عرض أقل"
+    },
+    "reminders": {
+      "title": "تذكيرات",
+      "projects_zero": "مشروع في مساحة عملك",
+      "projects_one": "مشروع في مساحة عملك",
+      "projects_two": "مشروعان في مساحة عملك",
+      "projects_few": "مشاريع في مساحة عملك",
+      "projects_many": "مشروعًا في مساحة عملك",
+      "projects_other": "مشروع في مساحة عملك",
+      "editedThisWeek_zero": "مشروع عُدّل في آخر 7 أيام",
+      "editedThisWeek_one": "مشروع عُدّل في آخر 7 أيام",
+      "editedThisWeek_two": "مشروعان عُدّلا في آخر 7 أيام",
+      "editedThisWeek_few": "مشاريع عُدّلت في آخر 7 أيام",
+      "editedThisWeek_many": "مشروعًا عُدّل في آخر 7 أيام",
+      "editedThisWeek_other": "مشروع عُدّل في آخر 7 أيام",
+      "artboards_zero": "لوح رسم في جميع المشاريع",
+      "artboards_one": "لوح رسم في جميع المشاريع",
+      "artboards_two": "لوحا رسم في جميع المشاريع",
+      "artboards_few": "ألواح رسم في جميع المشاريع",
+      "artboards_many": "لوح رسم في جميع المشاريع",
+      "artboards_other": "لوح رسم في جميع المشاريع",
+      "importedArtwork_zero": "رسم SVG مستورد",
+      "importedArtwork_one": "رسم SVG مستورد",
+      "importedArtwork_two": "رسما SVG مستوردان",
+      "importedArtwork_few": "رسوم SVG مستوردة",
+      "importedArtwork_many": "رسمًا SVG مستوردًا",
+      "importedArtwork_other": "رسم SVG مستورد"
+    },
+    "tips": {
+      "title": "نصائح",
+      "search": "اضغط / في أي مكان للبحث في المشاريع والإجراءات.",
+      "backup": "تُحفظ المشاريع في هذا المتصفح. نزّل ملف .qalam لعمل نسخة احتياطية أو لنقل مشروع إلى جهاز آخر.",
+      "import": "استورد زخرفة أو إطارًا بصيغة SVG وابنِ تركيبك حوله.",
+      "shortcuts": "اضغط ? لعرض جميع اختصارات لوحة المفاتيح."
+    },
+    "links": {
+      "title": "روابط سريعة",
+      "gettingStarted": "دليل البدء"
+    },
+    "workspace": {
+      "title": "مساحة العمل",
+      "storage": "مساحة تخزين المتصفح المستخدمة",
+      "storageOf": "{{used}} من {{quota}}",
+      "persist": {
+        "unknown": "جارٍ التحقق من حماية التخزين…",
+        "persisted": "التخزين محمي",
+        "best-effort": "التخزين غير محمي",
+        "unsupported": "حماية التخزين غير متاحة"
+      },
+      "persistHint": "لا يُمسح التخزين المحمي تلقائيًا عند انخفاض المساحة المتاحة على جهازك.",
+      "persistAction": "حماية مشاريعي",
+      "persistDenied": "رفض المتصفح الطلب. عادةً ما يسمح بذلك تثبيت التطبيق أو إضافة الموقع إلى الإشارات المرجعية."
+    }
+  },
+  "newDesign": {
+    "title": "تصميم جديد",
+    "description": "اختر اسمًا وحجمًا للوح الرسم. يمكنك تغييرهما لاحقًا.",
+    "name": "الاسم",
+    "size": "حجم لوح الرسم",
+    "width": "العرض",
+    "height": "الارتفاع",
+    "swap": "تبديل العرض والارتفاع",
+    "background": "الخلفية",
+    "sizeError": "يجب أن يكون العرض والارتفاع عددين صحيحين من {{min}} إلى {{max}} px.",
+    "create": "إنشاء التصميم"
+  },
+  "presets": {
+    "groups": {
+      "print": "طباعة",
+      "social": "وسائل التواصل الاجتماعي",
+      "screen": "شاشة",
+      "custom": "مخصص"
+    },
+    "names": {
+      "a4-portrait": "A4 عمودي",
+      "a4-landscape": "A4 أفقي",
+      "a3-portrait": "A3 عمودي",
+      "square-post": "منشور مربع",
+      "story": "قصة",
+      "banner": "لافتة",
+      "hd-landscape": "HD أفقي",
+      "custom": "حجم مخصص"
+    }
+  },
+  "projects": {
+    "untitled": "تصميم بلا عنوان",
+    "defaultArtboardName": "لوح الرسم {{index}}",
+    "copyName": "{{name}} (نسخة)",
+    "renameTitle": "إعادة تسمية المشروع",
+    "renameDescription": "يمكن أن تكون الأسماء بأي لغة.",
+    "deleteTitle": "حذف المشروع؟",
+    "deleteDescription": "ستتم إزالة «{{name}}» من هذا المتصفح. يمكنك التراجع مباشرة بعد الحذف.",
+    "qalamErrors": {
+      "invalidJson": "الملف ليس بصيغة JSON صالحة.",
+      "notQalam": "هذا ليس ملف مشروع Qalam Studio.",
+      "unsupportedVersion": "أُنشئ هذا الملف بإصدار أحدث من Qalam Studio. حدّث التطبيق لفتحه.",
+      "invalidProject": "بيانات المشروع في هذا الملف تالفة أو غير مكتملة."
+    },
+    "svgErrors": {
+      "tooLarge": "يجب ألا يتجاوز حجم ملفات SVG ‏5 MB.",
+      "invalidSvg": "الملف ليس صورة SVG صالحة."
+    },
+    "toast": {
+      "opened": "تم فتح «{{name}}»",
+      "openFailed": "تعذّر فتح المشروع",
+      "imported": "تم استيراد «{{name}}»",
+      "importFailed": "تعذّر استيراد SVG",
+      "createFailed": "تعذّر إنشاء التصميم",
+      "downloaded": "تم حفظ {{file}}",
+      "duplicated": "تم إنشاء «{{name}}»",
+      "deleted": "تم حذف «{{name}}»",
+      "actionFailed": "حدث خطأ ما",
+      "unexpected": "حدث خطأ غير متوقع. يُرجى المحاولة مرة أخرى."
+    }
+  },
+  "editor": {
+    "heading": "تحرير {{name}}",
+    "breadcrumb": "مسار التنقل",
+    "projectName": "اسم المشروع",
+    "saved": "تم الحفظ",
+    "savedAt": "حُفظت جميع التغييرات في هذا المتصفح · {{time}}",
+    "saveFailed": "تعذّر حفظ التغيير",
+    "download": "تنزيل",
+    "canvas": "لوحة الرسم",
+    "artboardLabel": "{{name}}، {{width}} × {{height}} بكسل",
+    "emptyArtboard": "اضغط T أو اختر أداة النص لإضافة خط.",
+    "canvasUnsupported": "لا يستطيع هذا المتصفح رسم لوحة التصميم.",
+    "leftPanel": "الأدوات والطبقات",
+    "zoom": {
+      "label": "التكبير",
+      "reset": "تكبير إلى 100%",
+      "current": "التكبير {{value}}، إعادة إلى 100%"
+    },
+    "tools": {
+      "title": "الأدوات",
+      "select": "تحديد",
+      "hand": "يد",
+      "text": "نص",
+      "baseline": "دليل خط الأساس",
+      "kashida": "كشيدة",
+      "placeSvg": "وضع رسم SVG",
+      "kashidaHint": "اسحب حرفًا متصلًا جانبيًا لإطالته (كشيدة). أفلت للتطبيق.",
+      "baselineHint": "انقر على لوح الرسم لإضافة دليل خط أساس أفقي. اسحب الأدلة لتحريكها، واسحبها خارج لوح الرسم لإزالتها."
+    },
+    "layers": {
+      "title": "الطبقات",
+      "empty": "لا توجد طبقات بعد",
+      "untitledArtwork": "رسم",
+      "untitledText": "نص",
+      "show": "إظهار {{name}}",
+      "hide": "إخفاء {{name}}",
+      "actions": "إجراءات الطبقة",
+      "groupName": "مجموعة {{index}}",
+      "hint": "انقر مع Ctrl/Shift لتحديد عدة طبقات. انقر نقرًا مزدوجًا لإعادة التسمية. اسحب لإعادة الترتيب.",
+      "lock": "قفل {{name}}",
+      "unlock": "فتح قفل {{name}}"
+    },
+    "properties": {
+      "title": "الخصائص",
+      "artboard": "لوح الرسم",
+      "document": "المستند",
+      "aspectLocked": "النسب مقفلة.",
+      "removeArtwork": "إزالة الرسم",
+      "removeText": "إزالة النص",
+      "text": "النص",
+      "font": "الخط",
+      "language": "اللغة",
+      "fontSize": "حجم الخط",
+      "lineHeight": "ارتفاع السطر",
+      "align": "المحاذاة",
+      "align_start": "محاذاة لليمين (بداية السطر)",
+      "align_center": "توسيط",
+      "align_end": "محاذاة لليسار (نهاية السطر)",
+      "fill": "اللون",
+      "scale": "المقياس",
+      "rotation": "التدوير",
+      "emptyText": "لا يمكن أن يكون النص فارغًا.",
+      "shapingFailed": "تعذّر تشكيل هذا النص: {{error}}",
+      "shapingUnavailable": "يتطلب تشكيل النص متصفحًا يدعم Web Worker.",
+      "storage": "التخزين",
+      "storageLocal": "هذا المتصفح (IndexedDB)",
+      "scaleX": "مقياس العرض",
+      "scaleY": "مقياس الارتفاع"
+    },
+    "missing": {
+      "title": "المشروع غير موجود",
+      "description": "ربما حُذف، أو أُنشئ في متصفح آخر."
+    },
+    "saveState": {
+      "saved": "تم الحفظ",
+      "pending": "تغييرات غير محفوظة",
+      "saving": "جارٍ الحفظ…",
+      "error": "لم يُحفظ"
+    },
+    "artboards": {
+      "title": "ألواح الرسم",
+      "add": "إضافة لوح رسم",
+      "name": "الاسم",
+      "duplicate": "تكرار {{name}}",
+      "delete": "حذف {{name}}",
+      "layerCount_zero": "{{count}} طبقة",
+      "layerCount_one": "{{count}} طبقة",
+      "layerCount_two": "{{count}} طبقتان",
+      "layerCount_few": "{{count}} طبقات",
+      "layerCount_many": "{{count}} طبقةً",
+      "layerCount_other": "{{count}} طبقة"
+    },
+    "assets": {
+      "title": "الأصول"
+    },
+    "history": {
+      "label": "السجل",
+      "title": "سجل الإصدارات",
+      "description": "تُلتقط لقطات تلقائيًا كل بضع دقائق أثناء عملك. احفظ إصدارًا مسمّى قبل التغييرات الكبيرة.",
+      "labelField": "اسم الإصدار",
+      "labelPlaceholder": "مثال: قبل إعادة التلوين",
+      "save": "حفظ الإصدار",
+      "saved": "تم حفظ الإصدار",
+      "list": "الإصدارات المحفوظة",
+      "empty": "لا توجد إصدارات بعد.",
+      "auto": "لقطة تلقائية",
+      "manual": "إصدار محفوظ",
+      "restore": "استعادة",
+      "restored": "تمت استعادة الإصدار",
+      "undoHint": "اضغط Ctrl+Z للرجوع.",
+      "restoreFailed": "تعذّرت استعادة هذا الإصدار.",
+      "delete": "حذف الإصدار"
+    },
+    "view": {
+      "title": "خيارات العرض",
+      "rulers": "المساطر",
+      "grid": "الشبكة",
+      "snap": "المحاذاة التلقائية للأدلة والشبكة",
+      "smartGuides": "الأدلة الذكية",
+      "gridSize": "حجم الشبكة",
+      "symmetry": "محاور التماثل",
+      "symmetry_off": "إيقاف",
+      "symmetry_vertical": "عمودي",
+      "symmetry_horizontal": "أفقي",
+      "symmetry_both": "كلاهما"
+    },
+    "export": {
+      "button": "تصدير",
+      "title": "تصدير التصميم",
+      "description": "يُصدَّر النص كمخططات، فيبدو الملف متطابقًا في كل مكان دون الحاجة إلى خطوط.",
+      "format": "الصيغة",
+      "formatHint_png": "صورة للمشاركة والطباعة. تُحفظ الدقة في الملف.",
+      "formatHint_svg": "ملف متجهي قابل للتحجيم لأدوات التصميم وآلات القص والويب.",
+      "formatHint_pdf": "ملف PDF متجهي للطباعة؛ صفحة لكل لوح رسم. لا تُضمَّن الظلال.",
+      "resolution": "الدقة",
+      "customDpi": "DPI مخصص",
+      "pixels": "{{width}} × {{height}} px بدقة {{dpi}} DPI",
+      "clamped": "خُفّض إلى أكبر حجم يستطيع هذا المتصفح رسمه",
+      "transparent": "خلفية شفافة",
+      "allArtboards": "جميع ألواح الرسم ({{count}})",
+      "run": "تصدير",
+      "done": "اكتمل التصدير",
+      "failed": "فشل التصدير"
+    },
+    "guides": {
+      "title": "الأدلة",
+      "baseline": "خط الأساس",
+      "vertical": "عمودي",
+      "empty": "لا توجد أدلة. استخدم أداة خط الأساس (B) أو انقر على مسطرة لإضافة دليل.",
+      "hint": "تلتصق خطوط أساس النص والعناصر بالأدلة أثناء السحب.",
+      "horizontalAt": "دليل أفقي (y)",
+      "verticalAt": "دليل عمودي (x)",
+      "remove": "إزالة الدليل",
+      "addVertical": "انقر لإضافة دليل عمودي",
+      "addHorizontal": "انقر لإضافة دليل أفقي"
+    },
+    "arrange": {
+      "title": "ترتيب",
+      "titleMany": "ترتيب {{count}} طبقات",
+      "toArtboard": "المحاذاة إلى لوح الرسم.",
+      "toSelection": "المحاذاة إلى التحديد.",
+      "left": "محاذاة لليسار",
+      "centerX": "محاذاة المراكز أفقيًا",
+      "right": "محاذاة لليمين",
+      "top": "محاذاة للأعلى",
+      "centerY": "محاذاة المراكز عموديًا",
+      "bottom": "محاذاة للأسفل",
+      "distributeX": "توزيع أفقي",
+      "distributeY": "توزيع عمودي",
+      "flipX": "قلب أفقي",
+      "flipY": "قلب عمودي",
+      "mirrorCopyX": "نسخة معكوسة ⟷",
+      "mirrorCopyY": "نسخة معكوسة ↕"
+    },
+    "parts": {
+      "title": "الحروف والنقاط",
+      "level": "مستوى التحرير",
+      "levels": {
+        "object": "الكل",
+        "word": "الكلمات",
+        "letter": "الحروف",
+        "part": "الأجزاء"
+      },
+      "levelHint": "انقر نقرًا مزدوجًا على النص في لوحة الرسم للانتقال مستوى أعمق؛ ويعيدك Esc للخلف.",
+      "lockMarks": "إبقاء النقاط مع حرفها",
+      "nothingSelected": "انقر على كلمة أو حرف أو نقطة في لوحة الرسم.",
+      "selected_zero": "المحدد: {{count}} (الأجزاء: {{parts}})",
+      "selected_one": "المحدد: {{count}} (الأجزاء: {{parts}})",
+      "selected_two": "المحدد: {{count}} (الأجزاء: {{parts}})",
+      "selected_few": "المحدد: {{count}} (الأجزاء: {{parts}})",
+      "selected_many": "المحدد: {{count}} (الأجزاء: {{parts}})",
+      "selected_other": "المحدد: {{count}} (الأجزاء: {{parts}})",
+      "reset": "إعادة تعيين الموضع",
+      "resetAll": "إعادة تعيين جميع تعديلات الحروف",
+      "hide": "إخفاء",
+      "show": "إظهار",
+      "merge": "دمج الأجزاء",
+      "split": "تقسيم الأجزاء",
+      "kind": "نوع الجزء",
+      "kinds": {
+        "auto": "تلقائي",
+        "body": "جسم",
+        "dot": "نقطة",
+        "mark": "علامة"
+      },
+      "detected": "المكتشف: {{kinds}}",
+      "kashida": "كشيدة (مدّ الحرف)",
+      "kashidaValue": "{{value}} em",
+      "alternates": "الأشكال البديلة",
+      "noAlternates": "لا يحتوي هذا الخط على أشكال بديلة لهذا الحرف.",
+      "defaultForm": "افتراضي",
+      "alternate": "بديل {{tag}} {{value}}"
+    },
+    "style": {
+      "title": "النمط",
+      "fill": "التعبئة",
+      "fillType": "نوع التعبئة",
+      "solid": "لون ثابت",
+      "linear": "تدرج",
+      "stop": "اللون {{index}}",
+      "angle": "زاوية التدرج",
+      "stroke": "الحد الخارجي",
+      "strokeColor": "لون الحد الخارجي",
+      "strokeWidth": "السُمك",
+      "opacity": "العتامة",
+      "shadow": "الظل",
+      "shadowColor": "لون الظل",
+      "shadow_blur": "التمويه",
+      "shadow_offsetX": "الإزاحة X",
+      "shadow_offsetY": "الإزاحة Y",
+      "shadow_opacity": "الشدة"
+    }
+  },
+  "templates": {
+    "title": "القوالب",
+    "browse": "تصفّح القوالب",
+    "startBlank": "البدء من الصفر",
+    "intro": "تراكيب جاهزة يمكنك تكييفها: يبقى كل حرف ونقطة وعلامة قابلًا للتحرير.",
+    "use": "استخدام القالب",
+    "size": "{{width}} × {{height}} px",
+    "failed": "تعذّر إنشاء مشروع من هذا القالب.",
+    "items": {
+      "bismillah-naskh": "البسملة بخط النسخ الذهبي",
+      "bismillah-nastaliq": "البسملة بخط النستعليق",
+      "name-nastaliq": "اسم بخط النستعليق",
+      "name-ruqaa": "اسم بخط الرقعة",
+      "logo-kufi": "شعار كوفي",
+      "logo-thuluth": "شعار نصي مع فاصل",
+      "poetry-iqbal": "بيت لإقبال (قصة)",
+      "poetry-hafez": "بيت لحافظ",
+      "frame-alhamdulillah": "ميدالية الحمد لله",
+      "frame-mashallah": "محراب ما شاء الله"
+    },
+    "categories": {
+      "bismillah": {
+        "title": "البسملة",
+        "description": "تراكيب كلاسيكية ومعاصرة للبسملة."
+      },
+      "names": {
+        "title": "الأسماء",
+        "description": "أسماء شخصية بتراكيب نستعليق متراصة وتخطيطات ثلث متوازنة."
+      },
+      "logos": {
+        "title": "الشعارات والمونوغرامات",
+        "description": "شعارات نصية مدمجة للعلامات التجارية والمتاجر والمناسبات."
+      },
+      "poetry": {
+        "title": "الأبيات الشعرية",
+        "description": "تراكيب من سطرين للغزليات والأشعار."
+      },
+      "frames": {
+        "title": "الحواف والإطارات",
+        "description": "إطارات زخرفية لإتمام التركيب."
+      }
+    }
+  },
+  "errors": {
+    "title": "واجهت هذه الصفحة مشكلة",
+    "description": "مشاريعك آمنة. حاول مرة أخرى، أو أعد تحميل التطبيق.",
+    "retry": "حاول مرة أخرى",
+    "reload": "إعادة التحميل"
+  },
+  "notFound": {
+    "title": "الصفحة غير موجودة",
+    "description": "الصفحة التي تبحث عنها غير موجودة.",
+    "backHome": "العودة إلى الرئيسية"
+  },
+  "ornaments": {
+    "color": "لون الزخرفة",
+    "place": "وضع {{name}}",
+    "license": "تصاميم أصلية، مجانية الاستخدام في أي عمل.",
+    "categories": {
+      "ornament": "الزخارف",
+      "frame": "الإطارات",
+      "pattern": "أنماط الخلفية"
+    },
+    "items": {
+      "rosette": "وردة زخرفية",
+      "star": "نجمة ثمانية",
+      "medallion": "شمسة",
+      "divider": "فاصل",
+      "corner": "زخرفة ركنية",
+      "frameClassic": "إطار كلاسيكي",
+      "frameArch": "إطار مقوّس",
+      "patternStars": "تبليط نجمي",
+      "patternHex": "مسدسات",
+      "patternLattice": "مشبّك",
+      "patternDots": "نقاط",
+      "patternWaves": "أمواج"
+    }
+  }
+}

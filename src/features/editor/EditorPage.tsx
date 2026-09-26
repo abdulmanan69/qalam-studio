@@ -22,7 +22,7 @@ import { useTextLayouts } from './canvas/use-text-layouts';
 import { CanvasViewport } from './CanvasViewport';
 import { applyToDocument, useDocumentStore } from './document-store';
 import { EditorToolbar } from './EditorToolbar';
-import { useEditorStore, type EditLevel } from './editor-store';
+import { useEditorCommands, useEditorStore, type EditLevel } from './editor-store';
 import { ExportDialog } from './ExportDialog';
 import { LayersPanel } from './LayersPanel';
 import { PropertiesPanel } from './PropertiesPanel';
@@ -310,6 +310,13 @@ function EditorWorkspace({ project }: { project: Project }) {
     }),
     [actions],
   );
+
+  useEffect(() => {
+    useEditorCommands.setState({ actions });
+    return () => {
+      useEditorCommands.setState({ actions: null });
+    };
+  }, [actions]);
 
   const download = () => {
     projectActions.downloadProject(project);

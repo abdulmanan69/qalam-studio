@@ -1,28 +1,115 @@
-import { Feather, FilePlus2, Flower2, Signature, Sparkles, Stamp, type LucideIcon } from 'lucide-react';
+import { FilePlus2, LoaderCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router';
+import { toast } from 'sonner';
 
 import { useUiStore } from '@/app/ui-store';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { layoutRequestFor, tryGetShapingClient } from '@/features/editor/canvas/use-text-layouts';
+import { renderArtboardSvg } from '@/features/editor/export/render-svg';
+import { saveNewProject } from '@/features/projects/repository';
+import type { TextLayout } from '@/features/shaping/types';
 import { useDocumentTitle } from '@/lib/use-document-title';
 
-interface TemplateCategory {
-  id: 'bismillah' | 'names' | 'logos' | 'poetry' | 'frames';
-  icon: LucideIcon;
-  /** Sample text for the preview strip (UI font until calligraphy fonts ship). */
-  sample: string;
-  sampleLang: string;
+import {
+  instantiateTemplate,
+  TEMPLATE_CATEGORIES,
+  TEMPLATES,
+  type MeasureText,
+  type TemplateDef,
+} from './templates';
+
+const measure: MeasureText = async (run) => {
+  const client = tryGetShapingClient();
+  if (!client) return null;
+  try {
+    return await client.layout(layoutRequestFor(run));
+  } catch {
+    return null;
+  }
+};
+
+/** SVG data URL of a template, rendered with the real fonts (as outlines). */
+async function previewUrl(template: TemplateDef): Promise<string> {
+  const project = await instantiateTemplate(template, 'preview', measure);
+  const layouts = new Map<string, TextLayout>();
+  for (const layer of project.layers) {
+    if (layer.kind !== 'text') continue;
+    const layout = await measure(layer);
+    if (layout) layouts.set(layer.id, layout);
+  }
+  const artboard = project.artboards[0];
+  if (!artboard) return '';
+  const svg = renderArtboardSvg(artboard, project.layers, layouts);
+  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
-const CATEGORIES: readonly TemplateCategory[] = [
-  { id: 'bismillah', icon: Sparkles, sample: 'بسم الله الرحمن الرحيم', sampleLang: 'ar' },
-  { id: 'names', icon: Signature, sample: 'علی · فاطمہ · زینب', sampleLang: 'ur' },
-  { id: 'logos', icon: Stamp, sample: 'قلم', sampleLang: 'ur' },
-  { id: 'poetry', icon: Feather, sample: 'خودی کو کر بلند اتنا', sampleLang: 'ur' },
-  { id: 'frames', icon: Flower2, sample: '❁ ✿ ❁', sampleLang: 'und' },
-];
+function TemplateCard({ template }: { template: TemplateDef }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [preview, setPreview] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const name = t(`templates.items.${template.id}`);
+
+  useEffect(() => {
+    let active = true;
+    previewUrl(template).then(
+      (url) => {
+        if (active) setPreview(url);
+      },
+      (error: unknown) => {
+        console.warn('Template preview failed', error);
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, [template]);
+
+  const use = async () => {
+    setBusy(true);
+    try {
+      const project = await saveNewProject(
+        await instantiateTemplate(template, name, measure, t('projects.defaultArtboardName', { index: 1 })),
+      );
+      void navigate(`/editor/${project.id}`);
+    } catch (error) {
+      console.error(error);
+      toast.error(t('templates.failed'));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card className="flex h-full flex-col overflow-hidden">
+      <div className="flex h-44 items-center justify-center border-b border-border bg-surface-sunken p-3">
+        {preview ? (
+          <img
+            src={preview}
+            alt=""
+            className="max-h-full max-w-full shadow-card"
+            style={{ aspectRatio: `${String(template.width)} / ${String(template.height)}` }}
+          />
+        ) : (
+          <LoaderCircle className="size-5 animate-spin text-muted-foreground" aria-hidden />
+        )}
+      </div>
+      <CardHeader className="flex-1">
+        <CardTitle as="h3">{name}</CardTitle>
+        <CardDescription>
+          {t('templates.size', { width: template.width, height: template.height })}
+        </CardDescription>
+        <Button size="sm" className="mt-2 justify-self-start" disabled={busy} onClick={() => void use()}>
+          {busy && <LoaderCircle className="animate-spin" aria-hidden />}
+          {t('templates.use')}
+        </Button>
+      </CardHeader>
+    </Card>
+  );
+}
 
 export function TemplatesPage() {
   const { t } = useTranslation();
@@ -45,34 +132,27 @@ export function TemplatesPage() {
           </Button>
         }
       />
-      <div className="grid gap-4 p-4 sm:p-6">
+      <div className="grid gap-8 p-4 sm:p-6">
         <p className="max-w-2xl text-muted-foreground">{t('templates.intro')}</p>
-        <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {CATEGORIES.map(({ id, icon: Icon, sample, sampleLang }) => (
-            <li key={id}>
-              <Card className="h-full overflow-hidden">
-                <div
-                  className="flex h-28 items-center justify-center border-b border-border bg-surface-sunken px-4 text-2xl text-foreground/80"
-                  lang={sampleLang}
-                  dir="auto"
-                  aria-hidden
-                >
-                  {sample}
-                </div>
-                <CardHeader>
-                  <CardTitle as="h2" className="flex items-center gap-2">
-                    <Icon className="size-4 text-muted-foreground" aria-hidden />
-                    {t(`templates.categories.${id}.title`)}
-                  </CardTitle>
-                  <Badge variant="outline">{t('common.comingSoon')}</Badge>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription>{t(`templates.categories.${id}.description`)}</CardDescription>
-                </CardContent>
-              </Card>
-            </li>
-          ))}
-        </ul>
+        {TEMPLATE_CATEGORIES.map((category) => (
+          <section key={category} aria-labelledby={`tpl-${category}`} className="grid gap-3">
+            <div>
+              <h2 id={`tpl-${category}`} className="text-base font-semibold">
+                {t(`templates.categories.${category}.title`)}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {t(`templates.categories.${category}.description`)}
+              </p>
+            </div>
+            <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {TEMPLATES.filter((tpl) => tpl.category === category).map((template) => (
+                <li key={template.id}>
+                  <TemplateCard template={template} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
       </div>
     </>
   );

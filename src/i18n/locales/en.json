@@ -9,7 +9,10 @@
     "duplicate": "Duplicate",
     "undo": "Undo",
     "loading": "Loading…",
-    "comingSoon": "Coming soon"
+    "comingSoon": "Coming soon",
+    "offlineReady": "Qalam Studio is ready to work offline.",
+    "updateAvailable": "A new version of Qalam Studio is available.",
+    "reload": "Reload"
   },
   "shell": {
     "skipToContent": "Skip to main content"
@@ -565,7 +568,22 @@
     "title": "Templates",
     "browse": "Browse templates",
     "startBlank": "Start from blank",
-    "intro": "Ready-made compositions you can adapt: every letter, dot and mark stays editable. The gallery arrives together with the calligraphy text engine.",
+    "intro": "Ready-made compositions you can adapt: every letter, dot and mark stays editable.",
+    "use": "Use template",
+    "size": "{{width}} × {{height}} px",
+    "failed": "Could not create a project from this template.",
+    "items": {
+      "bismillah-naskh": "Bismillah in gold Naskh",
+      "bismillah-nastaliq": "Bismillah in Nastaliq",
+      "name-nastaliq": "Name in Nastaliq",
+      "name-ruqaa": "Name in Ruqaa",
+      "logo-kufi": "Kufic monogram",
+      "logo-thuluth": "Wordmark with divider",
+      "poetry-iqbal": "Iqbal couplet (story)",
+      "poetry-hafez": "Hafez couplet",
+      "frame-alhamdulillah": "Alhamdulillah medallion",
+      "frame-mashallah": "Mashallah arch"
+    },
     "categories": {
       "bismillah": {
         "title": "Bismillah",

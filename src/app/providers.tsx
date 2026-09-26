@@ -1,8 +1,11 @@
+import { DirectionProvider } from '@radix-ui/react-direction';
 import { useEffect, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useResolvedTheme } from '@/app/preferences-store';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { getDirection } from '@/i18n';
 
 /** Applies the resolved theme class to <html> so CSS tokens switch. */
 function ThemeSync() {
@@ -18,11 +21,15 @@ function ThemeSync() {
 }
 
 export function AppProviders({ children }: { children: ReactNode }) {
+  const { i18n } = useTranslation();
+  // Radix components (menus, sliders, tabs) follow the UI direction.
   return (
-    <TooltipProvider delayDuration={400} skipDelayDuration={200}>
-      <ThemeSync />
-      {children}
-      <Toaster />
-    </TooltipProvider>
+    <DirectionProvider dir={getDirection(i18n.language)}>
+      <TooltipProvider delayDuration={400} skipDelayDuration={200}>
+        <ThemeSync />
+        {children}
+        <Toaster />
+      </TooltipProvider>
+    </DirectionProvider>
   );
 }
