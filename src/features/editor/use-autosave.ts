@@ -9,25 +9,22 @@ import { maybeAutoVersion } from '@/features/projects/versions';
 import { useDocumentStore } from './document-store';
 import { useEditorStore } from './editor-store';
 
-const SAVE_DELAY_MS = 400;
-
 /**
- * Persist the open document to IndexedDB shortly after each change (and when
- * the editor closes or the page is hidden), and take periodic snapshots for
- * the version history.
+ * Persist the open document to IndexedDB right after each change (every
+ * change is a discrete, committed edit — typing is already debounced
+ * upstream), and take periodic snapshots for the version history. Writes are
+ * serialized; a burst of changes only writes the latest document.
  */
 export function useAutosave(): void {
   const { t } = useTranslation();
   const setSaveState = useEditorStore((s) => s.setSaveState);
 
   useEffect(() => {
-    let timer: number | undefined;
     let pending: Project | null = null;
     let lastSaved = useDocumentStore.getState().project;
+    let chain: Promise<void> = Promise.resolve();
 
-    const flush = async () => {
-      window.clearTimeout(timer);
-      timer = undefined;
+    const write = async () => {
       const project = pending;
       pending = null;
       if (!project || project === lastSaved) return;
@@ -36,7 +33,8 @@ export function useAutosave(): void {
         await db.projects.put(project);
         lastSaved = project;
         await maybeAutoVersion(project);
-        setSaveState('saved');
+        // Saved unless a newer change arrived meanwhile (it has its own write queued).
+        if (useDocumentStore.getState().project === project) setSaveState('saved');
       } catch (error) {
         console.error('Autosave failed', error);
         setSaveState('error');
@@ -44,16 +42,21 @@ export function useAutosave(): void {
       }
     };
 
+    const flush = () => {
+      chain = chain.then(write);
+      return chain;
+    };
+
     const unsubscribe = useDocumentStore.subscribe((state, previous) => {
       if (!state.project || state.project === previous.project) return;
-      if (previous.project && state.project.id !== previous.project.id) {
+      if (!previous.project || state.project.id !== previous.project.id) {
+        // A project was (re)loaded, not edited.
         lastSaved = state.project;
         return;
       }
       pending = state.project;
       setSaveState('pending');
-      window.clearTimeout(timer);
-      timer = window.setTimeout(() => void flush(), SAVE_DELAY_MS);
+      void flush();
     });
 
     const onHide = () => {

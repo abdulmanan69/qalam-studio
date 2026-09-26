@@ -2,6 +2,7 @@
 
 | Guide                                                  | For                                             |
 | ------------------------------------------------------ | ----------------------------------------------- |
+| [User guide](user-guide.md)                            | Step-by-step guideline for every tool           |
 | [Getting started](getting-started.md)                  | Using the app: projects, editor, shortcuts      |
 | [Architecture](architecture.md)                        | How the code is organized and why               |
 | [Project file format (.qalam)](project-file-format.md) | Reading or generating project files             |

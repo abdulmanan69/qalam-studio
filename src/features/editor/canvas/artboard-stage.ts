@@ -703,7 +703,11 @@ export class ArtboardStage {
     );
   }
 
-  /** The extendable letter of a visible text layer under the pointer (top-most first). */
+  /**
+   * The letter to stretch when pressing on a text layer (top-most first): the
+   * extendable letter under the pointer, or else the horizontally nearest one
+   * on that line — joining forms can be tiny (e.g. an initial ب in Nastaliq).
+   */
   private findKashidaTarget(p: XY): KashidaDrag | null {
     const scene = this.scene;
     if (!scene) return null;
@@ -712,17 +716,18 @@ export class ArtboardStage {
       if (layer.kind !== 'text' || layer.hidden || layer.locked || !layout) continue;
       const m = textMatrix(layer);
       const local = applyToPoint(invert(m), p);
-      const extendable = new Set(layout.extendable);
-      const pad = layout.fontSize * 0.05;
-      const hit = resolveParts(layer, layout).find(
-        (part) =>
-          part.kind === 'body' &&
-          extendable.has(part.letter) &&
-          local.x >= part.box.x - pad &&
-          local.x <= part.box.x + part.box.width + pad &&
-          local.y >= part.box.y - pad &&
-          local.y <= part.box.y + part.box.height + pad,
+      const pad = layout.fontSize * 0.1;
+      const line = layout.lines.findIndex(
+        (l) => local.y >= l.baseline - layout.ascent - pad && local.y <= l.baseline + layout.descent + pad,
       );
+      const onText = line >= 0 && local.x >= -pad && local.x <= layout.width + pad;
+      if (!onText) continue;
+      const extendable = new Set(layout.extendable);
+      const distance = (part: ResolvedPart) =>
+        Math.max(0, part.box.x - local.x, local.x - (part.box.x + part.box.width));
+      const hit = resolveParts(layer, layout)
+        .filter((part) => part.kind === 'body' && part.line === line && extendable.has(part.letter))
+        .sort((a, b) => distance(a) - distance(b))[0];
       if (hit) {
         const startValue = layer.kashida[String(hit.letter)] ?? 0;
         return {

@@ -22,9 +22,44 @@ Inspired by desktop tools such as Kelk, built on the open web.
 Every push to `main` that passes CI is deployed to GitHub Pages at
 **[abdulmanan69.github.io/qalam-studio](https://abdulmanan69.github.io/qalam-studio/)**. Your projects stay in your browser — nothing is uploaded.
 
-## Status
+## Features
 
-Qalam Studio is built in phases ([roadmap](docs/roadmap.md)). Phases 1 and 2 are complete.
+New here? Read the **[user guide](docs/user-guide.md)** — a step-by-step guideline for every tool.
+
+All seven phases of the [roadmap](docs/roadmap.md) are complete.
+
+**Letters, dots and marks (phases 3–4)**
+
+- ✅ Every glyph is split into its **body, dots and marks**; drill down **word → letter → part**
+  (double-click / Enter, Esc to go back) and move, scale or rotate each piece on its own
+- ✅ **Keep dots with their letter** lock, manual re-classification, hide, merge and split parts
+- ✅ Editing the text keeps the adjustments of unchanged letters
+- ✅ **Kashida**: tatweel re-shaping for Naskh fonts, smooth stroke stretching for Nastaliq and
+  Ruqaa; drag tool (`K`) and slider
+- ✅ **Alternate letter forms** from the font (`salt`, `swsh`, `ssNN`, `cvNN`) with previews
+- ✅ **Baseline guides** with baseline snapping for stacked compositions
+
+**Design tools (phase 5)**
+
+- ✅ Layers panel: drag to reorder, lock, hide, rename, **groups**
+- ✅ Fill (solid or **gradient**), outline, opacity, **shadow**; exact position, scale, rotation
+- ✅ Unlimited **undo/redo**, instant autosave, **version history** with named versions
+- ✅ Export **SVG**, **PNG** (1×, 2×, 4× or custom DPI, written into the file) and vector **PDF**
+- ✅ Multiple **artboards**; rulers, grid, snapping, smart guides, symmetry axes, mirror copy
+- ✅ Copy/paste (also between tabs), duplicate, align, distribute, flip, nudge, place SVG
+
+**Templates, languages, offline (phase 6)**
+
+- ✅ Template gallery (Bismillah, names, logos, poetry, frames) and original ornaments, frames and
+  background patterns
+- ✅ Interface in **English, Urdu, Arabic and Persian** with right-to-left layout
+- ✅ Installable **offline PWA** — fonts and the shaping engine are cached
+
+**Quality (phase 7)**
+
+- ✅ Unit, component and end-to-end tests (including dot editing and export) and automated
+  **axe accessibility** checks in English and Urdu
+- ✅ **Storybook** component workshop (`npm run storybook`) with language and theme switchers
 
 **Phase 2 — text shaping**
 
@@ -48,9 +83,6 @@ Qalam Studio is built in phases ([roadmap](docs/roadmap.md)). Phases 1 and 2 are
 - ✅ Keyboard shortcuts (`?`), full keyboard navigation, WCAG 2.1 AA colors
 - ✅ CI (lint, type-check, unit + e2e tests, build) and automatic GitHub Pages deployment
 
-Next up — **Phase 3**: split every glyph into its letter body, dots and diacritics as independent,
-movable parts.
-
 ## Quick start
 
 Requirements: **Node.js 22** (see `.nvmrc`) and npm.
@@ -73,6 +105,8 @@ npm run dev          # http://localhost:5173
 | `npm run lint`          | ESLint (type-aware, accessibility rules)        |
 | `npm run typecheck`     | TypeScript strict mode check                    |
 | `npm run format`        | Prettier                                        |
+| `npm run storybook`     | Component workshop at http://localhost:6006     |
+| `npm run icons`         | Regenerate the PWA icons from `favicon.svg`     |
 
 First e2e run: `npx playwright install chromium`.
 
@@ -97,10 +131,10 @@ A font is added with **one folder and one JSON entry** — no code changes:
 3. Run `npm test`. The registry tests check that the file and license exist, and that the font
    really contains every letter of each language it claims to support.
 
+Optional: set `"kashida": "stretch"` for scripts where tatweel is not used (Nastaliq, Ruqaa).
+
 Bundled fonts and their sources: [public/fonts/README.md](public/fonts/README.md). Full guide:
 [docs/adding-fonts.md](docs/adding-fonts.md).
-
-Full guide: [docs/adding-fonts.md](docs/adding-fonts.md).
 
 ## Architecture in brief
 
@@ -111,7 +145,8 @@ src/
   components/layout/  app shell: top bar, navigation, search, dialogs
   features/
     dashboard/        home page
-    editor/           editor shell, viewport, panels
+    editor/           editor: document store (undo/redo), canvas stage, panels, exporters
+    ornaments/        original ornaments, frames and patterns (generated SVG)
     projects/         data model (zod), IndexedDB (Dexie), .qalam files, SVG import
     shaping/          HarfBuzz + opentype.js engine (framework-free) and its Web Worker
     fonts/            font registry, font picker, preview loading

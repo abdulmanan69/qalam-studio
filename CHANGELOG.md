@@ -7,6 +7,42 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+Phases 3–7 — letter-level editing, design tools, templates, languages, offline, quality.
+
+### Added
+
+- Glyph splitting into body, dots and marks with automatic classification; drill-down editing
+  (word → letter → part), "keep dots with their letter", manual re-classification, hide, merge and
+  split parts. Text edits keep the adjustments of unchanged letters.
+- Kashida: tatweel re-shaping (Naskh) and smooth stroke stretching (Nastaliq, Ruqaa), with a
+  canvas drag tool (`K`) and a slider. Registry field `kashida` per font.
+- Alternate glyph picker for `salt`, `swsh`, `ssNN` and `cvNN` features, with previews.
+- Guides (baseline tool `B`, rulers), baseline snapping, grid, snap to guides and grid, smart
+  guides, symmetry axes, mirror copy.
+- Layers panel with drag-and-drop ordering, lock, hide, rename and groups; artboards panel.
+- Styles: solid or gradient fill, outline, opacity, shadow.
+- Unlimited undo/redo (zundo), instant autosave, version history with named versions (Dexie v3).
+- Export: SVG (text as outlines), PNG at 1×/2×/4× or custom DPI (pHYs chunk), vector PDF with one
+  page per artboard (jsPDF + svg2pdf.js, loaded on demand).
+- Clipboard (copy, cut, paste, also across tabs), duplicate, select all, nudge, align, distribute,
+  flip, place SVG, pinch zoom on touch screens.
+- Original ornaments, frames and background patterns; template gallery with ten templates and
+  live previews.
+- Urdu, Arabic and Persian interface translations with right-to-left layout and a language
+  switcher.
+- Installable offline PWA (fonts and the HarfBuzz engine precached) with update prompts.
+- Storybook, end-to-end tests for letter editing, kashida, layers and export, axe accessibility
+  checks, locale consistency test.
+- [User guide](docs/user-guide.md), linked from the Help menu.
+
+### Changed
+
+- Project schema v3: one ordered `layers` list (artwork and text), styles, per-part adjustments,
+  kashida, alternate forms, guides and groups. v1 and v2 projects and files are migrated.
+- The Edit, Letters, Layers and Export menus now run editor commands.
+
+## [0.2.0] - 2026-09-27
+
 Phase 2 — text shaping.
 
 ### Added
@@ -62,5 +98,6 @@ Phase 1 — foundation.
   commitlint, Vitest + Testing Library, Playwright.
 - GitHub Actions CI and GitHub Pages deployment, Dependabot, issue and PR templates.
 
-[Unreleased]: ../../compare/v0.1.0...HEAD
+[Unreleased]: ../../compare/v0.2.0...HEAD
+[0.2.0]: ../../compare/v0.1.0...v0.2.0
 [0.1.0]: ../../releases/tag/v0.1.0

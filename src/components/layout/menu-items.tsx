@@ -1,4 +1,4 @@
-import { BookOpen, Bug, Info, Keyboard, Monitor, Moon, Sun } from 'lucide-react';
+import { BookOpen, Bug, GraduationCap, Info, Keyboard, Monitor, Moon, Sun } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { usePreferencesStore, type ThemePreference } from '@/app/preferences-store';
@@ -10,7 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
 } from '@/components/ui/dropdown-menu';
-import { DOCS_URL, ISSUES_URL } from '@/lib/config';
+import { DOCS_URL, ISSUES_URL, USER_GUIDE_URL } from '@/lib/config';
 import { shortcutText } from '@/lib/hotkeys';
 
 import { shortcutCombo } from './shortcuts';
@@ -61,6 +61,12 @@ export function HelpMenuItems() {
         <Keyboard aria-hidden />
         {t('help.shortcuts')}
         <DropdownMenuShortcut>{shortcutText(shortcutCombo('showShortcuts'))}</DropdownMenuShortcut>
+      </DropdownMenuItem>
+      <DropdownMenuItem asChild>
+        <a href={USER_GUIDE_URL} target="_blank" rel="noreferrer">
+          <GraduationCap aria-hidden />
+          {t('help.userGuide')}
+        </a>
       </DropdownMenuItem>
       <DropdownMenuItem asChild>
         <a href={DOCS_URL} target="_blank" rel="noreferrer">

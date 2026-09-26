@@ -10,4 +10,5 @@ export const REPO_URL: string =
   import.meta.env.VITE_REPO_URL ?? 'https://github.com/abdulmanan69/qalam-studio';
 
 export const DOCS_URL = `${REPO_URL}/tree/main/docs`;
+export const USER_GUIDE_URL = `${REPO_URL}/blob/main/docs/user-guide.md`;
 export const ISSUES_URL = `${REPO_URL}/issues/new/choose`;
