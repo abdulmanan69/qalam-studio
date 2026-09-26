@@ -1,0 +1,85 @@
+{
+  "defaultFontId": "noto-nastaliq-urdu",
+  "languageDefaults": {
+    "ur": "noto-nastaliq-urdu",
+    "fa": "noto-nastaliq-urdu",
+    "ar": "amiri",
+    "ku": "scheherazade-new",
+    "ps": "scheherazade-new",
+    "sd": "scheherazade-new"
+  },
+  "fonts": [
+    {
+      "id": "noto-nastaliq-urdu",
+      "name": "Noto Nastaliq Urdu",
+      "style": "nastaliq",
+      "file": "noto-nastaliq-urdu/NotoNastaliqUrdu-Variable.ttf",
+      "license": "noto-nastaliq-urdu/OFL.txt",
+      "languages": ["ur", "fa", "ar"],
+      "lineHeight": 1
+    },
+    {
+      "id": "gulzar",
+      "name": "Gulzar",
+      "style": "nastaliq",
+      "file": "gulzar/Gulzar-Regular.ttf",
+      "license": "gulzar/OFL.txt",
+      "languages": ["ur", "fa", "ar"],
+      "lineHeight": 1
+    },
+    {
+      "id": "amiri",
+      "name": "Amiri",
+      "style": "naskh",
+      "file": "amiri/Amiri-Regular.ttf",
+      "license": "amiri/OFL.txt",
+      "languages": ["ar", "fa", "ur"],
+      "lineHeight": 1
+    },
+    {
+      "id": "scheherazade-new",
+      "name": "Scheherazade New",
+      "style": "naskh",
+      "file": "scheherazade-new/ScheherazadeNew-Regular.ttf",
+      "license": "scheherazade-new/OFL.txt",
+      "languages": ["ar", "fa", "ur", "ku", "ps", "sd"],
+      "lineHeight": 1
+    },
+    {
+      "id": "noto-naskh-arabic",
+      "name": "Noto Naskh Arabic",
+      "style": "naskh",
+      "file": "noto-naskh-arabic/NotoNaskhArabic-Variable.ttf",
+      "license": "noto-naskh-arabic/OFL.txt",
+      "languages": ["ar", "fa", "ur", "ku", "ps", "sd"],
+      "lineHeight": 1
+    },
+    {
+      "id": "aref-ruqaa",
+      "name": "Aref Ruqaa",
+      "style": "ruqaa",
+      "file": "aref-ruqaa/ArefRuqaa-Regular.ttf",
+      "license": "aref-ruqaa/OFL.txt",
+      "languages": ["ar"],
+      "lineHeight": 1
+    },
+    {
+      "id": "reem-kufi",
+      "name": "Reem Kufi",
+      "style": "kufi",
+      "file": "reem-kufi/ReemKufi-Variable.ttf",
+      "license": "reem-kufi/OFL.txt",
+      "languages": ["ar", "fa"],
+      "lineHeight": 1
+    },
+    {
+      "id": "amiri-quran",
+      "name": "Amiri Quran",
+      "style": "display",
+      "file": "amiri-quran/AmiriQuran-Regular.ttf",
+      "license": "amiri-quran/OFL.txt",
+      "languages": ["ar"],
+      "lineHeight": 1
+    }
+  ]
+}

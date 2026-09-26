@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Qalam Studio — open-source web calligraphy editor for Urdu, Arabic, Persian, Kurdish, Pashto and Sindhi. Works fully offline."
+    />
+    <meta name="theme-color" content="#3f5465" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <title>Qalam Studio</title>
+    <script>
+      // Apply the saved theme before first paint to avoid a light/dark flash.
+      (function () {
+        try {
+          var raw = localStorage.getItem('qalam.preferences');
+          var pref = raw ? JSON.parse(raw).state.theme : 'system';
+          var dark =
+            pref === 'dark' ||
+            (pref !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {
+          /* storage unavailable: fall back to light */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <noscript>Qalam Studio needs JavaScript enabled to run.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

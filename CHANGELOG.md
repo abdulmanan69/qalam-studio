@@ -1,0 +1,66 @@
+# Changelog
+
+All notable changes to this project are documented here.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+Phase 2 — text shaping.
+
+### Added
+
+- Shaping engine (`src/features/shaping`): HarfBuzz (WebAssembly) shaping and opentype.js glyph
+  outlines with multi-line layout (line height, alignment), framework-free and tested in Node
+  against the bundled fonts.
+- Shaping Web Worker with a cached, de-duplicating client, request timeout and crash recovery.
+- Eight bundled OFL fonts: Noto Nastaliq Urdu, Gulzar, Amiri, Amiri Quran, Scheherazade New,
+  Noto Naskh Arabic, Aref Ruqaa, Reem Kufi; validated font registry with per-language defaults
+  and tests that each font covers the letters of the languages it declares.
+- Fabric.js artboard canvas: text drawn as glyph paths, SVG artwork as images; select, move,
+  scale, rotate and mirror on canvas, synced with the document.
+- Text tool (`T`) and Add text dialog with language and font pickers (live font previews).
+- On-screen keyboards for Urdu, Arabic and Persian, with extra letters for Kurdish, Pashto and
+  Sindhi, diacritics, digits and punctuation.
+- Text properties: content (live), language, font, size, line height, alignment, color,
+  position, scale and rotation; rotation for SVG artwork.
+- Shortcuts: `T` add text, `Delete` remove layer, `Esc` deselect.
+
+### Changed
+
+- Project schema v2 (`texts`, artwork `angle`). Stored projects and `.qalam` files from v1 are
+  migrated automatically; files from newer versions are rejected with a clear message.
+- Zoom is capped per artboard so the canvas stays within browser size limits.
+- Fabric.js 7 is used instead of 6: every 6.x release is affected by an SVG-export XSS advisory
+  (GHSA-hfvx-25r5-qc3w) that is fixed only in 7.x.
+
+## [0.1.0] - 2026-09-27
+
+Phase 1 — foundation.
+
+### Added
+
+- Application shell: top bar with command search (`/`), dark slate-teal navigation with File,
+  Edit, Text, Letters, Layers, Templates, Export, Settings and Help menus, recent-projects menu.
+- Design tokens with light and dark themes (system preference supported), Inter and Noto Sans
+  Arabic bundled locally, WCAG 2.1 AA contrast.
+- Dashboard: quick-action tiles, sortable recent-projects table (open, rename, duplicate,
+  download, delete with undo), reminders and tips, workspace storage usage and persistent-storage
+  request.
+- Local project storage in IndexedDB (Dexie) with a zod-validated document model and autosave.
+- New-design dialog with artboard presets (A4, A3, square post, story, banner, HD, custom).
+- `.qalam` project files: download and open, versioned and validated.
+- SVG import with sanitization; imported artwork is placed on a fitted artboard.
+- Editor shell: zoom (buttons, Ctrl/⌘ + wheel, pinch, shortcuts, fit), pan (hand tool, Space,
+  middle mouse), layers panel with visibility toggles, properties panel for artboard size,
+  background and artwork position/size.
+- Keyboard shortcut registry and help dialog (`?`).
+- Templates gallery preview.
+- i18n infrastructure (react-i18next) with RTL-aware document direction.
+- Tooling: Vite, TypeScript strict, ESLint (type-aware + jsx-a11y), Prettier, Husky, lint-staged,
+  commitlint, Vitest + Testing Library, Playwright.
+- GitHub Actions CI and GitHub Pages deployment, Dependabot, issue and PR templates.
+
+[Unreleased]: ../../compare/v0.1.0...HEAD
+[0.1.0]: ../../releases/tag/v0.1.0

@@ -1,0 +1,27 @@
+import { cn } from '@/lib/utils';
+
+/**
+ * Qalam Studio mark: a reed pen (qalam) nib over a rhombus nuqta — the dot
+ * calligraphers use as their unit of proportion. Original artwork, MIT.
+ */
+export function Logo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className={cn('size-7 shrink-0', className)} aria-hidden focusable="false">
+      <rect width="32" height="32" rx="7" className="fill-nav" />
+      <path
+        d="M9.2 22.6 20.6 7.4a1.6 1.6 0 0 1 2.3-.3l1.4 1.1a1.6 1.6 0 0 1 .3 2.2L13.2 25.6Z"
+        fill="#ffffff"
+      />
+      <path d="M9.2 22.6l4 3-4.9 1.4Z" fill="#dde1e4" />
+      <rect
+        x="20"
+        y="19.6"
+        width="4.2"
+        height="4.2"
+        rx=".6"
+        transform="rotate(45 22.1 21.7)"
+        className="fill-tile-mustard"
+      />
+    </svg>
+  );
+}

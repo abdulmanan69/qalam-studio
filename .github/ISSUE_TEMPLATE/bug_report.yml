@@ -1,0 +1,76 @@
+name: Bug report
+description: Something does not work as expected.
+labels: ['bug', 'triage']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please search existing issues first.
+        **Never attach private projects** — reduce the problem to a small example you are happy to share.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Click …
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: input
+    id: text
+    attributes:
+      label: Text involved (if any)
+      description: The exact Urdu/Arabic/Persian text, if the bug is about rendering or shaping.
+
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Help → About Qalam Studio.
+      placeholder: 0.1.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      multiple: true
+      options:
+        - Chrome / Edge / other Chromium
+        - Firefox
+        - Safari (macOS)
+        - Safari (iOS / iPadOS)
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      placeholder: Windows 11, macOS 15, Android 16…
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots, console errors, or a .qalam file
+      description: Drag files here. Browser console output (F12) is very helpful.

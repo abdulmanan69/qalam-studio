@@ -1,0 +1,104 @@
+/*
+ * Qalam Studio design tokens.
+ *
+ * Every color in the UI is referenced through these variables so light and
+ * dark themes (and future brand themes) are a pure CSS swap. Contrast pairs
+ * were checked against WCAG 2.1 AA (4.5:1 for body text):
+ *   foreground on background      ~ 13.9:1
+ *   muted-foreground on card       ~ 5.9:1
+ *   nav-foreground on nav          ~ 7.9:1
+ *   tile foregrounds on tiles      >= 4.6:1 (mustard uses dark text: 6.7:1;
+ *                                  terracotta darkened from #B36E4A to #A6643F)
+ */
+
+:root {
+  --font-ui:
+    'Inter Variable', 'Noto Sans Arabic Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --radius: 5px;
+
+  --background: #f2f4f5;
+  --foreground: #1f2a33;
+  --card: #ffffff;
+  --card-foreground: #1f2a33;
+  --popover: #ffffff;
+  --popover-foreground: #1f2a33;
+  --primary: #3f5465;
+  --primary-foreground: #ffffff;
+  --secondary: #e9edf0;
+  --secondary-foreground: #1f2a33;
+  --muted: #eef1f3;
+  --muted-foreground: #5b6670;
+  --accent: #e6edf2;
+  --accent-foreground: #1f2a33;
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+  --border: #dde1e4;
+  --input: #c3cad0;
+  --ring: #2f6fa3;
+  --link: #1f5e8c;
+  --surface-sunken: #f7f8f9;
+  --canvas: #e4e7ea;
+  --canvas-check: #dadee2;
+
+  --nav: #3f5465;
+  --nav-foreground: #ffffff;
+  --nav-hover: #4d6477;
+  --nav-active: #2f4050;
+
+  --tile-mustard: #b8a020;
+  --tile-mustard-foreground: #1a1a1a;
+  --tile-green: #4a7d5a;
+  --tile-green-foreground: #ffffff;
+  --tile-terracotta: #a6643f;
+  --tile-terracotta-foreground: #ffffff;
+  --tile-slate: #6e7580;
+  --tile-slate-foreground: #ffffff;
+
+  --shadow-card: 0 1px 2px rgb(16 24 32 / 0.06), 0 1px 1px rgb(16 24 32 / 0.04);
+  --shadow-popover: 0 6px 20px rgb(16 24 32 / 0.14), 0 2px 6px rgb(16 24 32 / 0.08);
+}
+
+/* Arabic-script UI languages lead with Noto Sans Arabic. */
+:root:lang(ar),
+:root:lang(ur),
+:root:lang(fa) {
+  --font-ui:
+    'Noto Sans Arabic Variable', 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Tahoma, sans-serif;
+}
+
+.dark {
+  --background: #14191e;
+  --foreground: #e3e8ec;
+  --card: #1c2329;
+  --card-foreground: #e3e8ec;
+  --popover: #222a31;
+  --popover-foreground: #e3e8ec;
+  --primary: #8fb3cc;
+  --primary-foreground: #0f1419;
+  --secondary: #28313a;
+  --secondary-foreground: #e3e8ec;
+  --muted: #232b33;
+  --muted-foreground: #a3adb6;
+  --accent: #2a3540;
+  --accent-foreground: #e3e8ec;
+  --destructive: #f07167;
+  --destructive-foreground: #1a0b09;
+  --border: #303a44;
+  --input: #3f4a55;
+  --ring: #7fb4e0;
+  --link: #8cc4ec;
+  --surface-sunken: #182026;
+  --canvas: #10151a;
+  --canvas-check: #161c22;
+
+  --nav: #243240;
+  --nav-foreground: #f2f5f7;
+  --nav-hover: #2e3f50;
+  --nav-active: #1a2530;
+
+  --tile-slate: #5f6670;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4);
+  --shadow-popover: 0 8px 24px rgb(0 0 0 / 0.5), 0 2px 6px rgb(0 0 0 / 0.3);
+}

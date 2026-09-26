@@ -1,0 +1,420 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "close": "Close",
+    "save": "Save",
+    "delete": "Delete",
+    "open": "Open",
+    "rename": "Rename",
+    "duplicate": "Duplicate",
+    "undo": "Undo",
+    "loading": "Loading…",
+    "comingSoon": "Coming soon"
+  },
+  "shell": {
+    "skipToContent": "Skip to main content"
+  },
+  "topBar": {
+    "home": "Qalam Studio home",
+    "workspace": "Local workspace",
+    "workspaceHint": "Stored in this browser",
+    "workspaceMenu": "Workspace and preferences"
+  },
+  "nav": {
+    "label": "Main",
+    "home": "Home",
+    "recent": "Recent projects",
+    "file": "File",
+    "edit": "Edit",
+    "text": "Text",
+    "letters": "Letters",
+    "layers": "Layers",
+    "templates": "Templates",
+    "export": "Export",
+    "settings": "Settings",
+    "help": "Help",
+    "plannedHint": "Arriving in an upcoming release"
+  },
+  "file": {
+    "downloadProject": "Download project (.qalam)",
+    "closeProject": "Close project"
+  },
+  "edit": {
+    "undo": "Undo",
+    "redo": "Redo",
+    "cut": "Cut",
+    "copy": "Copy",
+    "paste": "Paste",
+    "duplicate": "Duplicate",
+    "delete": "Delete",
+    "selectAll": "Select all"
+  },
+  "text": {
+    "addText": "Add text…",
+    "editHint": "Select text on the artboard to change its font, size and color."
+  },
+  "textDialog": {
+    "title": "Add text",
+    "description": "Type or paste text. It is shaped with the selected calligraphy font and placed in the middle of the artboard.",
+    "placeholder": "یہاں لکھیں…",
+    "add": "Add to artboard"
+  },
+  "keyboard": {
+    "label": "On-screen keyboard",
+    "marksLabel": "Diacritics",
+    "show": "Show keyboard",
+    "hide": "Hide keyboard",
+    "space": "Space",
+    "newline": "New line",
+    "zwnj": "Zero-width non-joiner (nim-fasila)",
+    "backspace": "Backspace",
+    "marks": {
+      "fatha": "Zabar (fatha)",
+      "kasra": "Zer (kasra)",
+      "damma": "Pesh (damma)",
+      "shadda": "Shadda (tashdid)",
+      "sukun": "Jazm (sukun)",
+      "fathatan": "Do zabar (fathatan)",
+      "kasratan": "Do zer (kasratan)",
+      "dammatan": "Do pesh (dammatan)",
+      "superscriptAlef": "Khari zabar (superscript alef)",
+      "hamzaAbove": "Hamza above",
+      "maddaAbove": "Madda above"
+    }
+  },
+  "languages": {
+    "ur": "Urdu",
+    "ar": "Arabic",
+    "fa": "Persian",
+    "ku": "Kurdish (Sorani)",
+    "ps": "Pashto",
+    "sd": "Sindhi"
+  },
+  "fonts": {
+    "styles": {
+      "nastaliq": "Nastaliq",
+      "naskh": "Naskh",
+      "thuluth": "Thuluth",
+      "ruqaa": "Ruqaa",
+      "kufi": "Kufi",
+      "diwani": "Diwani",
+      "display": "Display"
+    }
+  },
+  "letters": {
+    "alternates": "Alternate letter forms…",
+    "kashida": "Kashida stretch",
+    "splitParts": "Split into parts",
+    "reclassify": "Reclassify part (body / dot / mark)",
+    "lockMarks": "Lock dots and marks to letter"
+  },
+  "layers": {
+    "bringForward": "Bring forward",
+    "sendBackward": "Send backward",
+    "group": "Group",
+    "ungroup": "Ungroup",
+    "lock": "Lock",
+    "hide": "Hide"
+  },
+  "export": {
+    "project": "Project file (.qalam)",
+    "svg": "SVG…",
+    "png": "PNG…",
+    "pdf": "PDF…"
+  },
+  "settings": {
+    "appearance": "Appearance",
+    "theme": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "Match system"
+    },
+    "language": "Language",
+    "languageSoon": "Soon",
+    "clearData": "Clear local data…",
+    "clearDataTitle": "Delete all local projects?",
+    "clearDataDescription": "This permanently deletes every project stored in this browser. Download .qalam files first if you want to keep them. This cannot be undone.",
+    "clearDataConfirm": "Delete everything",
+    "clearDataDone": "All local projects were deleted."
+  },
+  "help": {
+    "shortcuts": "Keyboard shortcuts",
+    "documentation": "Documentation",
+    "reportIssue": "Report an issue",
+    "about": "About Qalam Studio"
+  },
+  "about": {
+    "version": "Version {{version}}",
+    "description": "An open-source calligraphy editor for Urdu, Arabic, Persian, Kurdish, Pashto and Sindhi.",
+    "privacy": "Your projects never leave your device: everything is stored in this browser.",
+    "license": "Code released under the MIT License.",
+    "fonts": "Bundled fonts keep their SIL Open Font License.",
+    "sourceCode": "Source code",
+    "author": "Created by Abdul Manan"
+  },
+  "search": {
+    "label": "Search projects and actions",
+    "placeholder": "Search projects and actions…",
+    "results": "Search results",
+    "actions": "Actions",
+    "projects": "Projects",
+    "noResults": "No matches",
+    "darkMode": "Switch to dark mode",
+    "lightMode": "Switch to light mode"
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "description": "Work faster without the mouse. On macOS, Ctrl is ⌘ and Alt is ⌥.",
+    "groups": {
+      "general": "General",
+      "projects": "Projects",
+      "editor": "Editor"
+    },
+    "items": {
+      "focusSearch": "Search",
+      "showShortcuts": "Show keyboard shortcuts",
+      "newDesign": "New design",
+      "openProject": "Open project file",
+      "importSvg": "Import SVG",
+      "downloadProject": "Download project (.qalam)",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "zoomFit": "Fit artboard to window",
+      "zoomActual": "Zoom to 100%",
+      "selectTool": "Select tool",
+      "handTool": "Hand tool (or hold Space)",
+      "textTool": "Add text",
+      "deleteLayer": "Delete selected layer",
+      "deselect": "Deselect"
+    }
+  },
+  "quickActions": {
+    "newDesign": "New Design",
+    "openProject": "Open Project",
+    "templates": "Templates",
+    "importSvg": "Import SVG",
+    "hints": {
+      "newDesign": "Create a blank design with a chosen artboard size",
+      "openProject": "Open a .qalam project file from your computer",
+      "templates": "Browse ready-made compositions",
+      "importSvg": "Start a new design from an SVG file"
+    }
+  },
+  "dashboard": {
+    "title": "Home",
+    "quickActions": "Quick Actions",
+    "recent": {
+      "title": "Recent Projects",
+      "name": "Name",
+      "artboard": "Artboard",
+      "modified": "Modified",
+      "created": "Created",
+      "actions": "Actions",
+      "actionsFor": "Actions for {{name}}",
+      "empty": "No projects yet",
+      "emptyHint": "Create a design or import an SVG to get started.",
+      "showAll": "Show all ({{count}})",
+      "showLess": "Show fewer"
+    },
+    "reminders": {
+      "title": "Reminders",
+      "projects_one": "project in your workspace",
+      "projects_other": "projects in your workspace",
+      "editedThisWeek_one": "project edited in the last 7 days",
+      "editedThisWeek_other": "projects edited in the last 7 days",
+      "artboards_one": "artboard across all projects",
+      "artboards_other": "artboards across all projects",
+      "importedArtwork_one": "imported SVG artwork",
+      "importedArtwork_other": "imported SVG artworks"
+    },
+    "tips": {
+      "title": "Tips",
+      "search": "Press / anywhere to search projects and actions.",
+      "backup": "Projects live in this browser. Download a .qalam file to back up or move one to another device.",
+      "import": "Import an SVG ornament or border and build your composition around it.",
+      "shortcuts": "Press ? to see every keyboard shortcut."
+    },
+    "links": {
+      "title": "Shortcuts",
+      "gettingStarted": "Getting started guide"
+    },
+    "workspace": {
+      "title": "Workspace",
+      "storage": "Browser storage used",
+      "storageOf": "{{used}} of {{quota}}",
+      "persist": {
+        "unknown": "Checking storage protection…",
+        "persisted": "Storage is protected",
+        "best-effort": "Storage is not protected",
+        "unsupported": "Storage protection unavailable"
+      },
+      "persistHint": "Protected storage is not cleared automatically when your device runs low on space.",
+      "persistAction": "Protect my projects",
+      "persistDenied": "The browser declined. Installing the app or bookmarking the site usually allows it."
+    }
+  },
+  "newDesign": {
+    "title": "New design",
+    "description": "Choose a name and an artboard size. You can change both later.",
+    "name": "Name",
+    "size": "Artboard size",
+    "width": "Width",
+    "height": "Height",
+    "swap": "Swap width and height",
+    "background": "Background",
+    "sizeError": "Width and height must be whole numbers from {{min}} to {{max}} px.",
+    "create": "Create design"
+  },
+  "presets": {
+    "groups": {
+      "print": "Print",
+      "social": "Social media",
+      "screen": "Screen",
+      "custom": "Custom"
+    },
+    "names": {
+      "a4-portrait": "A4 portrait",
+      "a4-landscape": "A4 landscape",
+      "a3-portrait": "A3 portrait",
+      "square-post": "Square post",
+      "story": "Story",
+      "banner": "Banner",
+      "hd-landscape": "HD landscape",
+      "custom": "Custom size"
+    }
+  },
+  "projects": {
+    "untitled": "Untitled design",
+    "defaultArtboardName": "Artboard {{index}}",
+    "copyName": "{{name}} (copy)",
+    "renameTitle": "Rename project",
+    "renameDescription": "Names can be in any language.",
+    "deleteTitle": "Delete project?",
+    "deleteDescription": "“{{name}}” will be removed from this browser. You can undo right after deleting.",
+    "qalamErrors": {
+      "invalidJson": "The file is not valid JSON.",
+      "notQalam": "This is not a Qalam Studio project file.",
+      "unsupportedVersion": "This file was made by a newer version of Qalam Studio. Update the app to open it.",
+      "invalidProject": "The project data in this file is damaged or incomplete."
+    },
+    "svgErrors": {
+      "tooLarge": "SVG files must be 5 MB or smaller.",
+      "invalidSvg": "The file is not a valid SVG image."
+    },
+    "toast": {
+      "opened": "Opened “{{name}}”",
+      "openFailed": "Could not open project",
+      "imported": "Imported “{{name}}”",
+      "importFailed": "Could not import SVG",
+      "createFailed": "Could not create design",
+      "downloaded": "Saved {{file}}",
+      "duplicated": "Created “{{name}}”",
+      "deleted": "Deleted “{{name}}”",
+      "actionFailed": "Something went wrong",
+      "unexpected": "An unexpected error occurred. Please try again."
+    }
+  },
+  "editor": {
+    "heading": "Editing {{name}}",
+    "breadcrumb": "Breadcrumb",
+    "projectName": "Project name",
+    "saved": "Saved",
+    "savedAt": "All changes saved in this browser · {{time}}",
+    "saveFailed": "Could not save change",
+    "download": "Download",
+    "canvas": "Canvas",
+    "artboardLabel": "{{name}}, {{width}} × {{height}} pixels",
+    "emptyArtboard": "Press T or choose the Text tool to add calligraphy.",
+    "canvasUnsupported": "This browser cannot draw the design canvas.",
+    "leftPanel": "Tools and layers",
+    "zoom": {
+      "label": "Zoom",
+      "reset": "Zoom to 100%",
+      "current": "Zoom {{value}}, reset to 100%"
+    },
+    "tools": {
+      "title": "Tools",
+      "select": "Select",
+      "hand": "Hand",
+      "text": "Text",
+      "baseline": "Baseline guide",
+      "kashida": "Kashida stretch"
+    },
+    "layers": {
+      "title": "Layers",
+      "empty": "No layers yet",
+      "untitledArtwork": "Artwork",
+      "untitledText": "Text",
+      "show": "Show {{name}}",
+      "hide": "Hide {{name}}"
+    },
+    "properties": {
+      "title": "Properties",
+      "artboard": "Artboard",
+      "document": "Document",
+      "aspectLocked": "Proportions are locked.",
+      "removeArtwork": "Remove artwork",
+      "removeText": "Remove text",
+      "text": "Text",
+      "font": "Font",
+      "language": "Language",
+      "fontSize": "Font size",
+      "lineHeight": "Line height",
+      "align": "Alignment",
+      "align_start": "Align right (start of line)",
+      "align_center": "Align center",
+      "align_end": "Align left (end of line)",
+      "fill": "Color",
+      "scale": "Scale",
+      "rotation": "Rotation",
+      "emptyText": "Text cannot be empty.",
+      "shapingFailed": "This text could not be shaped: {{error}}",
+      "shapingUnavailable": "Text shaping needs a browser with Web Worker support.",
+      "storage": "Storage",
+      "storageLocal": "This browser (IndexedDB)"
+    },
+    "missing": {
+      "title": "Project not found",
+      "description": "It may have been deleted, or it was created in another browser."
+    }
+  },
+  "templates": {
+    "title": "Templates",
+    "browse": "Browse templates",
+    "startBlank": "Start from blank",
+    "intro": "Ready-made compositions you can adapt: every letter, dot and mark stays editable. The gallery arrives together with the calligraphy text engine.",
+    "categories": {
+      "bismillah": {
+        "title": "Bismillah",
+        "description": "Classic and contemporary arrangements of the basmala."
+      },
+      "names": {
+        "title": "Names",
+        "description": "Personal names in stacked Nastaliq and balanced Thuluth layouts."
+      },
+      "logos": {
+        "title": "Logos & monograms",
+        "description": "Compact wordmarks for brands, shops and events."
+      },
+      "poetry": {
+        "title": "Poetry couplets",
+        "description": "Two-line compositions for ghazals and ash‘ār."
+      },
+      "frames": {
+        "title": "Borders & frames",
+        "description": "Ornamental frames to finish a composition."
+      }
+    }
+  },
+  "errors": {
+    "title": "This page ran into a problem",
+    "description": "Your projects are safe. Try again, or reload the app.",
+    "retry": "Try again",
+    "reload": "Reload"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you were looking for does not exist.",
+    "backHome": "Back to Home"
+  }
+}
