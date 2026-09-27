@@ -22,12 +22,12 @@ A `.qalam` file is a UTF-8 JSON document. MIME type: `application/vnd.qalam+json
 | `app`           | string  | Producer name and version. Informational.                            |
 | `project`       | object  | The project document (below).                                        |
 
-## Project (schema version 3)
+## Project (schema version 4)
 
 ```json
 {
   "id": "0d3c6f0e-6a3f-4f7e-9b1e-2c9a7e5d4b10",
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "name": "Bismillah study",
   "createdAt": 1790503200000,
   "updatedAt": 1790506800000,
@@ -107,7 +107,7 @@ A `.qalam` file is a UTF-8 JSON document. MIME type: `application/vnd.qalam+json
 | Field                     | Rules                                                                                                     |
 | ------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `id`                      | 1–64 characters. Replaced with a new id on import.                                                        |
-| `schemaVersion`           | `3`. Versions 1 and 2 are migrated automatically (see below).                                             |
+| `schemaVersion`           | `4`. Versions 1–3 are migrated automatically (see below).                                                 |
 | `name`                    | 1–120 characters after trimming; any script.                                                              |
 | `createdAt` / `updatedAt` | Unix epoch **milliseconds** (integers).                                                                   |
 | `artboards`               | 1–50 items. `width`/`height` are integers from 16 to 10 000 (CSS px at 96 DPI).                           |
@@ -172,6 +172,22 @@ part, and parts sharing the same `link` string move together.
 The authoritative definition is the zod schema in
 [`src/features/projects/schema.ts`](../src/features/projects/schema.ts).
 
+### Publishing (schema version 4)
+
+| Field                   | Rules                                                                                                                                                                 |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `artboards[].margins`   | Optional `{ top, bottom, left, right }` in pixels.                                                                                                                    |
+| `artboards[].columns`   | Optional `{ count 1–12, gutter }`: the page's column grid.                                                                                                            |
+| `artboards[].bleed`     | Optional bleed in pixels (0–200).                                                                                                                                     |
+| `artboards[].master`    | `true` for a master page (not printed; its layers appear on pages that use it).                                                                                       |
+| `artboards[].masterId`  | The master page drawn behind this page, or `null`.                                                                                                                    |
+| `layers[].wrap`         | Optional `{ offset }`: text frames keep this many pixels away from the layer's bounding box.                                                                          |
+| `layers[]` kind `frame` | Text frame: `storyId`, `order` (position in the story's thread), `x/y/width/height`, `columns`, `inset`, `background`, `border`.                                      |
+| `layers[]` kind `image` | Photo: `src` (base64 PNG/JPEG/WebP/GIF data URL, ≤ 20 MB), `naturalWidth/Height`, box, `angle`, `opacity`, `fit` (`cover`, `contain`, `stretch`), `focusX/Y` (0–1).   |
+| `stories`               | `{ id, name, paragraphs: [{ text, styleId }] }`: text that flows through the frames with that `storyId`, in `order`.                                                  |
+| `paragraphStyles`       | `{ id, name, fontId, language, fontSize, lineHeight, align (justify/right/center/left), justify (kashida/space), firstIndent (em), spaceBefore, spaceAfter, color }`. |
+| `firstPageNumber`       | Number of the first page. Text containing `{page}` / `{pages}` shows the page number / page count.                                                                    |
+
 ## Compatibility rules
 
 - Unknown envelope fields are ignored. Unknown project fields are stripped on import.
@@ -183,4 +199,5 @@ The authoritative definition is the zod schema in
   - v2 → v3 merges `assets` and `texts` into one ordered `layers` list (artwork below text),
     turns the text `fill` color into `style`, and adds `locked`, `groupId`, `name`, `parts`,
     `kashida`, `features`, artwork `opacity`, artboard `guides` and `groups`.
+  - v3 → v4 adds `stories: []`, the default `paragraphStyles` and `firstPageNumber: 1`.
 - Projects stored in the browser are migrated the same way when the app updates.

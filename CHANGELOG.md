@@ -43,6 +43,10 @@ Phases 3–7 — letter-level editing, design tools, templates, languages, offli
   shown in the current font with unsupported symbols hidden (worker `coverage` request).
 - Spacing tuner: letter spacing, word spacing and automatic optical spacing in the layout engine
   (optional `spacing` on text layers).
+- Publishing: text frames with columns and stories threaded across pages, line breaking and
+  kashida/space justification aligned on the ink, text wrap, paragraph styles, placed photos,
+  page setup (newspaper sizes, margins, column grid, bleed), master pages with page-number tokens,
+  print PDF with crop marks and bleed, and newspaper/magazine/book templates. Project schema v4.
 
 ### Changed
 

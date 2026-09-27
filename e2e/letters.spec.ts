@@ -12,7 +12,10 @@ async function createDesignWithText(page: Page, text: string): Promise<void> {
   await dialog.getByRole('button', { name: 'Create design' }).click();
   await expect(page.getByRole('textbox', { name: 'Project name' })).toHaveValue('Letters check');
 
-  await page.getByRole('toolbar', { name: 'Tools' }).getByRole('button', { name: 'Text' }).click();
+  await page
+    .getByRole('toolbar', { name: 'Tools' })
+    .getByRole('button', { name: 'Text', exact: true })
+    .click();
   const add = page.getByRole('dialog', { name: 'Add text' });
   await add.getByLabel('Text', { exact: true }).fill(text);
   await add.getByRole('button', { name: 'Add to artboard' }).click();
@@ -144,7 +147,8 @@ test('select a dot on its own, move it, undo, redo and export SVG', async ({ pag
   await page.keyboard.press('Control+Shift+z');
   await expect(resetAll).toBeVisible();
 
-  // The adjustment survives a reload (autosave).
+  // The adjustment survives a reload (autosave), once the toolbar says it is saved.
+  await expect(page.getByRole('status').filter({ hasText: /^Saved$/ })).toBeVisible();
   await page.reload();
   await page.getByRole('list', { name: 'Layers' }).getByRole('button', { name: 'ب', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Reset all letter adjustments' })).toBeVisible();
@@ -189,7 +193,10 @@ test('kashida tool lengthens a joining letter', async ({ page }) => {
 
 test('layers can be grouped, locked and reordered from the layers panel', async ({ page }) => {
   await createDesignWithText(page, 'الف');
-  await page.getByRole('toolbar', { name: 'Tools' }).getByRole('button', { name: 'Text' }).click();
+  await page
+    .getByRole('toolbar', { name: 'Tools' })
+    .getByRole('button', { name: 'Text', exact: true })
+    .click();
   const add = page.getByRole('dialog', { name: 'Add text' });
   await add.getByLabel('Text', { exact: true }).fill('ب');
   await add.getByRole('button', { name: 'Add to artboard' }).click();
@@ -250,4 +257,64 @@ test('symbols panel inserts honorifics and ayah numbers in the current font', as
     .first()
     .click();
   await expect(page.locator('textarea').first()).toHaveValue('محمد۝۱۲');
+});
+
+test('publishing: page setup, text frame with columns, linked frame, print PDF', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('list', { name: 'Quick Actions' }).getByRole('button', { name: 'New Design' }).click();
+  const dialog = page.getByRole('dialog', { name: 'New design' });
+  await dialog.getByLabel('Name').fill('Daily');
+  await dialog.getByRole('combobox', { name: 'Artboard size' }).click();
+  await page.getByRole('option', { name: /Tabloid newspaper/ }).click();
+  await dialog.getByRole('button', { name: 'Create design' }).click();
+  await expect(page.getByRole('textbox', { name: 'Project name' })).toHaveValue('Daily');
+
+  // Page setup: margins and a 4-column grid.
+  await page.getByRole('tab', { name: 'Pages' }).click();
+  await page.getByRole('button', { name: 'Page setup' }).click();
+  const setup = page.getByRole('dialog', { name: 'Page setup' });
+  await setup.getByLabel('Margins and columns').click();
+  await setup.getByRole('textbox', { name: 'Columns' }).fill('4');
+  await setup.getByRole('button', { name: 'Save' }).click();
+  await expect(setup).toBeHidden();
+
+  // Draw a frame across the page: it snaps to the grid and takes its 4 columns.
+  const canvas = page.locator('[data-canvas-root] canvas').last();
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('Canvas not visible');
+  await page.keyboard.press('f');
+  await page.mouse.move(box.x + box.width * 0.05, box.y + box.height * 0.1);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.95, box.y + box.height * 0.3, { steps: 6 });
+  await page.mouse.up();
+  await expect(page.getByRole('textbox', { name: 'Columns', exact: true })).toHaveValue('4');
+
+  // A long story overflows the small frame…
+  const paragraph =
+    'یہ خبر کا متن ہے جو اخبار کے کالموں میں بہتا ہے اور جگہ ختم ہونے پر اگلے فریم میں چلا جاتا ہے۔ '.repeat(
+      8,
+    );
+  await page
+    .getByRole('textbox', { name: 'Text (one paragraph per line)' })
+    .fill(Array.from({ length: 12 }, () => paragraph.trim()).join('\n'));
+  const overflow = page.getByText('The text does not fit. Add a linked frame to continue it.');
+  await expect(overflow).toBeVisible({ timeout: 15_000 });
+
+  // …and continues on a new page in a linked frame.
+  await page.getByRole('button', { name: 'Continue on next page' }).click();
+  await expect(page.getByText(/Frame 2 of 2 in this story/)).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Pages' }).locator('li')).toHaveCount(2);
+
+  // Print PDF with crop marks: one page per page of the document.
+  await page.keyboard.press('Control+e');
+  const exportDialog = page.getByRole('dialog', { name: 'Export design' });
+  await exportDialog.getByRole('radio', { name: 'PDF' }).click();
+  await exportDialog.getByLabel('Crop marks and bleed (for the printer)').click();
+  const [download] = await Promise.all([
+    page.waitForEvent('download'),
+    exportDialog.getByRole('button', { name: 'Export', exact: true }).click(),
+  ]);
+  const pdf = await readFile(await download.path(), 'latin1');
+  expect(pdf.startsWith('%PDF')).toBe(true);
+  expect(pdf.match(/\/Type \/Page\b/g)).toHaveLength(2);
 });

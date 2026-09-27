@@ -23,7 +23,8 @@ file. Everything happens in your browser; your work is saved on your own device.
 - [18. Position adjuster](#18-position-adjuster)
 - [19. Symbols panel](#19-symbols-panel)
 - [20. Spacing tuner](#20-spacing-tuner)
-- [21. Troubleshooting](#21-troubleshooting)
+- [21. Newspapers, magazines and books](#21-newspapers-magazines-and-books)
+- [22. Troubleshooting](#22-troubleshooting)
 
 ---
 
@@ -294,7 +295,97 @@ The **Spacing** card adjusts the space between letters and words of a text layer
 
 Spacing works together with kashida, letter styles and moved dots.
 
-## 21. Troubleshooting
+## 21. Newspapers, magazines and books
+
+Qalam Studio lays out complete multi-page publications — a daily newspaper, a magazine or a book —
+with long text that flows by itself through columns and from page to page.
+
+The fastest start is **Templates → Newspapers, magazines & books**: a newspaper front page (with
+masthead, headline, photo, five columns and a story continued on page 2), a magazine article and
+a book chapter. Replace the sample text and photos and you are done. To build your own:
+
+### Page setup
+
+**Pages → Page setup** (or _File → Page setup_):
+
+- **Size**: A4, A3, A5 (book), US Letter, and the newspaper formats **Tabloid**, **Berliner** and
+  **Broadsheet** — or any custom size in millimetres.
+- **Margins** and a **column grid** (number of columns and the gutter between them). Margins and
+  columns are shown as violet guides; everything snaps to them.
+- **Bleed**: how far backgrounds and photos run past the trimmed page edge (usually 3 mm).
+- Apply the setup to the current page or to **all pages**.
+
+### Pages and master pages
+
+The **Pages** tab lists every page with its number. **Add** any number of pages, move pages up or
+down, duplicate or delete them.
+
+A **master page** holds what repeats on every page: the running header, the footer, the logo and
+the **page number**. Click **New master**, put those elements on it, and choose the master for a
+page (or **Use on all pages**). Type **{page}** in any text to show the page number and
+**{pages}** for the total — they are shown in the script's own digits (۱، ۲، ۳ …). Set the
+**first page number** if the document starts at, say, page 17.
+
+### Text frames and stories
+
+1. Choose the **Text frame** tool (`F`) and drag a box on the page. Drawn across several columns
+   of the grid, the frame snaps to them and takes the same number of columns.
+2. In the **Story** card, paste or type the article — **one paragraph per line** — or **Import
+   text file** (UTF-8 `.txt`, e.g. straight from the newsroom system).
+3. The text flows down the first column, then the next (right to left), and is **justified** to
+   the column width.
+4. If the text does not fit, the frame shows a red **+** and the panel offers **Continue on next
+   page** or **Continue in a new column**. Continued frames are **linked**: the story flows
+   through all of them, and editing the text re-flows everything. _Frame 2 of 3 in this story_
+   tells you where you are; **Unlink** takes a frame out of the chain.
+5. Each frame has its own number of **columns**, **gutter**, **inset**, **background** and
+   **border** (for boxed stories).
+
+The word counter shows how many words are placed, so you always know whether an article fits.
+
+### Paragraph styles
+
+The **Styles** tab holds the document's paragraph styles: _Body_, _Headline_, _Subheading_,
+_Byline_, _Caption_ and _Body (Naskh)_, plus any you add (**duplicate** a style to start a new
+one). A style sets the font, language, size, **line spacing**, alignment, first-line indent,
+space before and after, and colour. For justified text choose how lines are filled:
+
+- **Kashida** — the traditional way: joined letters are lengthened (tatweel in Naskh, stretched
+  strokes in Nastaliq) so every line reaches the column edge without gaps between words.
+- **Word spaces** — wider spaces, like Latin newspapers.
+
+Give a paragraph a style in the Story card (_Paragraph styles_ list). Changing a style updates
+every paragraph that uses it, in every story — change the body size once and the whole paper
+follows.
+
+### Photos and text wrap
+
+- **Place photo** (`Shift+P`, or the photo tool): JPG, PNG, WebP or GIF up to 15 MB. Photos are
+  embedded in the project, so it stays complete offline.
+- **Fit**: _Fill & crop_ (the photo fills its box; move the **crop position** sliders to choose
+  the visible part), _Fit inside_ or _Stretch_. Resize the box by dragging its handles.
+- **Text wrap**: select a photo (or any artwork, text or frame) and switch on **Text flows around
+  this** in the _Text wrap_ card. Frames on the page keep the chosen **distance** around it —
+  perfect for photos in the middle of a story, pull quotes and advertisements.
+
+### Printing
+
+**Export → PDF** creates one page per document page (all pages by default). For the printing
+press switch on **Crop marks and bleed**: the pages get trim marks and the bleed you set in page
+setup. Text is converted to outlines, so the printer needs none of your fonts. For single pages or
+the web, export PNG at 300 DPI or SVG.
+
+### Tips for newspaper work
+
+- Build one master page per section (front page, inside pages, sports) with the header and page
+  number, and assign it to the pages of that section.
+- Keep all body text in one _Body_ style; adjust leading there (0.6–0.8 for Nastaliq) until the
+  columns look right.
+- Draw frames on the column grid; use **Continue on next page** for jumps (“باقی صفحہ ۵ پر”).
+- Save a **named version** before closing each edition; download the `.qalam` file as the archive
+  copy.
+
+## 22. Troubleshooting
 
 | Problem                              | Solution                                                                               |
 | ------------------------------------ | -------------------------------------------------------------------------------------- |

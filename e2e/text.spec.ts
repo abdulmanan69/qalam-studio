@@ -29,7 +29,10 @@ async function createDesign(page: Page, name: string): Promise<void> {
 }
 
 async function addText(page: Page, text: string): Promise<void> {
-  await page.getByRole('toolbar', { name: 'Tools' }).getByRole('button', { name: 'Text' }).click();
+  await page
+    .getByRole('toolbar', { name: 'Tools' })
+    .getByRole('button', { name: 'Text', exact: true })
+    .click();
   const dialog = page.getByRole('dialog', { name: 'Add text' });
   await dialog.getByLabel('Text', { exact: true }).fill(text);
   await dialog.getByRole('button', { name: 'Add to artboard' }).click();

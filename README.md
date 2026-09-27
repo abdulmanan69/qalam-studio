@@ -46,6 +46,18 @@ All seven phases of the [roadmap](docs/roadmap.md) are complete.
   names — drawn in the current font, missing symbols hidden
 - ✅ **Spacing tuner**: letter and word spacing and automatic even spacing for Nastaliq
 
+**Publishing — newspapers, magazines, books**
+
+- ✅ **Text frames** with columns; long stories **flow through linked frames** across pages, with
+  overflow warnings and one-click continuation
+- ✅ **Justified text with kashida** (or word spaces), right-to-left column order, first-line
+  indents, paragraph spacing
+- ✅ **Paragraph styles** (body, headline, subheading, byline, caption, your own)
+- ✅ **Photos** (JPG/PNG/WebP/GIF) with fill-and-crop, and **text wrap** around any object
+- ✅ **Page setup** with newspaper sizes (tabloid, Berliner, broadsheet), margins, column grid and
+  bleed; **master pages** with automatic **page numbers**
+- ✅ Print **PDF with crop marks and bleed**; newspaper, magazine and book templates
+
 **Design tools (phase 5)**
 
 - ✅ Layers panel: drag to reorder, lock, hide, rename, **groups**

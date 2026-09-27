@@ -162,13 +162,37 @@ function countSpaces(text: string): number {
 }
 
 /** Lay out one line; stretch it to `target` width when justifying. */
+/** Horizontal extent of the ink (outlines), which can differ from the advance widths. */
+function inkOf(layout: TextLayout): { left: number; right: number } {
+  let left = Infinity;
+  let right = -Infinity;
+  for (const glyph of layout.glyphs) {
+    for (const part of glyph.parts) {
+      if (!part.path) continue;
+      left = Math.min(left, part.box.x);
+      right = Math.max(right, part.box.x + part.box.width);
+    }
+  }
+  return Number.isFinite(left) ? { left, right } : { left: 0, right: layout.width };
+}
+
+interface LaidLine {
+  layout: TextLayout;
+  ink: { left: number; right: number };
+}
+
+/**
+ * Lay out one line; when justifying, stretch it so its ink spans exactly
+ * `target` (Nastaliq ink often starts or ends inside the advance widths, so
+ * justifying advances alone leaves ragged edges).
+ */
 function layoutLine(
   font: LayoutFont,
   text: string,
   style: FlowStyle,
   target: number | null,
   rtl: boolean,
-): TextLayout {
+): LaidLine {
   const base = {
     language: style.language,
     fontSize: style.fontSize,
@@ -178,11 +202,17 @@ function layoutLine(
     simple: true,
   };
   const natural = layoutText(font, text, base);
-  if (target === null) return natural;
-  const extra = target - natural.width;
-  if (extra <= 0.5 || extra > target * MAX_JUSTIFY_SHARE) return natural;
+  const naturalInk = inkOf(natural);
+  const plain = { layout: natural, ink: naturalInk };
+  if (target === null) return plain;
+  const extra = target - (naturalInk.right - naturalInk.left);
   const spaces = countSpaces(text);
   const em = style.fontSize;
+  if (extra < -0.5 && spaces > 0) {
+    // Ink slightly wider than the column: tighten the word spaces instead.
+    return fitWithSpacing(font, text, base, {}, extra / spaces / em, target, spaces, em);
+  }
+  if (extra <= 0.5 || extra > target * MAX_JUSTIFY_SHARE) return plain;
   let kashida: Record<string, number> = {};
   let used = 0;
   if (style.justify === 'kashida' || spaces === 0) {
@@ -195,14 +225,36 @@ function layoutLine(
   }
   const remaining = extra - used;
   const wordSpacing = spaces > 0 && remaining > 0 ? remaining / spaces / em : 0;
-  if (used === 0 && wordSpacing === 0) return natural;
-  const justified = layoutText(font, text, { ...base, kashida, wordSpacing });
-  // Tatweel widths are quantized; close any small remaining gap with word spacing.
-  const gap = target - justified.width;
-  if (Math.abs(gap) > 0.5 && spaces > 0) {
-    return layoutText(font, text, { ...base, kashida, wordSpacing: wordSpacing + gap / spaces / em });
+  if (used === 0 && wordSpacing === 0) return plain;
+  return fitWithSpacing(font, text, base, kashida, wordSpacing, target, spaces, em);
+}
+
+/**
+ * Lay out with the given kashida and word spacing, then refine the word
+ * spacing until the ink spans `target` (tatweel widths are quantized and ink
+ * edges shift, so two refinements are applied at most).
+ */
+function fitWithSpacing(
+  font: LayoutFont,
+  text: string,
+  base: Parameters<typeof layoutText>[2],
+  kashida: Record<string, number>,
+  wordSpacing: number,
+  target: number,
+  spaces: number,
+  em: number,
+): LaidLine {
+  let spacing = wordSpacing;
+  let layout = layoutText(font, text, { ...base, kashida, wordSpacing: spacing });
+  let ink = inkOf(layout);
+  for (let pass = 0; pass < 2 && spaces > 0; pass++) {
+    const gap = target - (ink.right - ink.left);
+    if (Math.abs(gap) <= 0.5) break;
+    spacing += gap / spaces / em;
+    layout = layoutText(font, text, { ...base, kashida, wordSpacing: spacing });
+    ink = inkOf(layout);
   }
-  return justified;
+  return { layout, ink };
 }
 
 function linePath(layout: TextLayout, x: number, y: number): string {
@@ -344,19 +396,20 @@ export function flowText(fonts: ReadonlyMap<string, LayoutFont>, input: FlowInpu
         next += count;
         const last = next >= words.length;
         const target = style.align === 'justify' && !last ? available : null;
-        const layout = layoutLine(m.font, lineText, style, target, rtl);
+        const { layout, ink } = layoutLine(m.font, lineText, style, target, rtl);
         const align = style.align === 'justify' ? (rtl ? 'right' : 'left') : style.align;
+        // Align on the ink, so column edges look straight.
         let x: number;
-        if (align === 'center') x = slot.x0 + (slot.x1 - slot.x0 - layout.width) / 2;
-        else if (align === 'left') x = slot.x0 + (rtl ? 0 : indent);
-        else x = slot.x1 - (rtl ? indent : 0) - layout.width;
+        if (align === 'center') x = (slot.x0 + slot.x1) / 2 - (ink.left + ink.right) / 2;
+        else if (align === 'left') x = slot.x0 + (rtl ? 0 : indent) - ink.left;
+        else x = slot.x1 - (rtl ? indent : 0) - ink.right;
         const result = results[slot.frame];
         result?.lines.push({
           d: linePath(layout, x, slot.top + m.baselineShift),
           color: style.color,
-          x,
+          x: x + ink.left,
           y: slot.top,
-          width: layout.width,
+          width: ink.right - ink.left,
           height: m.lineAdvance,
         });
         placedWords += count;
