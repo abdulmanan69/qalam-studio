@@ -9,6 +9,8 @@ import {
 import {
   boxOfCommands,
   classifyShapes,
+  flatten,
+  splitContours,
   stretchCommands,
   toPathData,
   transformCommands,
@@ -219,33 +221,50 @@ function buildLine(ctx: LayoutContext, slice: LineSlice, baseline: number): Draf
   let width = pen;
 
   // 4. Stretch fallback: lengthen the joining stroke of each letter's body.
+  const rtl = (options.direction ?? 'rtl') === 'rtl';
   const splits = stretches
     .map(({ letter, extraPx }) => {
-      const bodies = glyphs
-        .filter((g) => g.letter === letter && !g.isKashida)
-        .flatMap((g) => g.parts.filter((p) => p.kind === 'body'));
+      const own = glyphs.filter((g) => g.letter === letter && !g.isKashida && g.kind !== 'mark');
+      const bodies = own.flatMap((g) => g.parts.filter((p) => p.kind === 'body'));
       if (bodies.length === 0) return null;
-      const boxes = bodies.map((p) => boxOfCommands(p.commands));
-      const left = Math.min(...boxes.map((b) => b.x));
-      const right = Math.max(...boxes.map((b) => b.x + b.width));
-      // The joining stroke of right-to-left letters is on their left side.
-      const rtl = (options.direction ?? 'rtl') === 'rtl';
-      const splitX = rtl ? left + (right - left) * 0.3 : left + (right - left) * 0.7;
-      return { splitX, extraPx };
+      const splitX = joinSplit(
+        bodies.map((p) => p.commands),
+        rtl,
+      );
+      return { letter, splitX, extraPx };
     })
-    .filter((s): s is { splitX: number; extraPx: number } => s !== null)
-    .sort((a, b) => b.splitX - a.splitX);
+    .filter((s): s is { letter: number; splitX: number; extraPx: number } => s !== null);
   if (splits.length > 0) {
     for (const glyph of glyphs) {
-      glyph.x += splits.filter((s) => s.splitX < glyph.x).reduce((sum, s) => sum + s.extraPx, 0);
-      for (const part of glyph.parts) {
-        if (part.kind === 'body') {
-          for (const s of splits) part.commands = stretchCommands(part.commands, s.splitX, s.extraPx);
-        } else {
-          const box = boxOfCommands(part.commands);
-          const center = box.x + box.width / 2;
-          const dx = splits.filter((s) => s.splitX < center).reduce((sum, s) => sum + s.extraPx, 0);
-          if (dx !== 0) part.commands = transformCommands(part.commands, 1, 1, dx, 0);
+      const own = !glyph.isKashida && glyph.kind !== 'mark';
+      const glyphBox = boxOfCommands(glyph.parts.flatMap((p) => p.commands));
+      const glyphCenter = glyphBox.x + glyphBox.width / 2;
+      for (const s of splits) {
+        if (own && glyph.letter === s.letter) {
+          // The stretched letter: lengthen its joining stroke; other parts move rigidly.
+          for (const part of glyph.parts) {
+            if (part.kind === 'body') {
+              part.commands = stretchCommands(part.commands, s.splitX, s.extraPx);
+            } else {
+              const box = boxOfCommands(part.commands);
+              if (box.x + box.width / 2 > s.splitX) {
+                part.commands = transformCommands(part.commands, 1, 1, s.extraPx, 0);
+              }
+            }
+          }
+        } else if (
+          glyph.letter === s.letter
+            ? glyphCenter > s.splitX
+            : rtl
+              ? glyph.letter < s.letter
+              : glyph.letter > s.letter
+        ) {
+          // Every other glyph moves as a whole, never deformed. Letters are chosen by
+          // logical order, not position: Nastaliq letters overlap, so the letter joined
+          // to the stretched one can sit over its tail.
+          glyph.x += s.extraPx;
+          for (const part of glyph.parts)
+            part.commands = transformCommands(part.commands, 1, 1, s.extraPx, 0);
         }
       }
     }
@@ -553,4 +572,48 @@ function previewPath(font: LayoutFont, glyphs: ShapedGlyph[], size: number): { p
   const tx = (size - box.width * fit) / 2 - box.x * fit;
   const ty = (size - box.height * fit) / 2 - box.y * fit;
   return { path: toPathData(transformCommands(commands, fit, fit, tx, ty), 1), size };
+}
+
+/**
+ * Where to stretch a letter for kashida: a vertical line through its joining
+ * stroke. The outline is scanned on the joining side (left for right-to-left
+ * letters); positions where the line crosses exactly one stroke are
+ * candidates, and the lowest one (nearest the baseline, where letters join)
+ * wins. Letters like Nastaliq ک have a tall keshan above the joint — a fixed
+ * split would cut through both strokes and fill the space between them.
+ */
+export function joinSplit(bodies: readonly (readonly OutlineCommand[])[], rtl: boolean): number {
+  const polygons = bodies.flatMap((commands) => splitContours(commands).map((c) => flatten(c)));
+  const points = polygons.flat();
+  if (points.length === 0) return 0;
+  const left = Math.min(...points.map((p) => p.x));
+  const right = Math.max(...points.map((p) => p.x));
+  const top = Math.min(...points.map((p) => p.y));
+  const bottom = Math.max(...points.map((p) => p.y));
+  const width = right - left;
+  const fallback = rtl ? left + width * 0.3 : left + width * 0.7;
+  if (width <= 0) return fallback;
+  const candidates: { x: number; mid: number }[] = [];
+  const samples = 48;
+  for (let i = 1; i < samples; i++) {
+    // Scan the joining side: the left 70 % for RTL, the right 70 % for LTR.
+    const t = (i / samples) * 0.7;
+    const x = rtl ? left + width * t : right - width * t;
+    const ys: number[] = [];
+    for (const polygon of polygons) {
+      for (let k = 0; k < polygon.length; k++) {
+        const a = polygon[k];
+        const b = polygon[(k + 1) % polygon.length];
+        if (!a || !b || (a.x - x) * (b.x - x) >= 0 || a.x === b.x) continue;
+        ys.push(a.y + ((x - a.x) / (b.x - a.x)) * (b.y - a.y));
+      }
+    }
+    if (ys.length === 2) candidates.push({ x, mid: ((ys[0] ?? 0) + (ys[1] ?? 0)) / 2 });
+  }
+  if (candidates.length === 0) return fallback;
+  const lowest = Math.max(...candidates.map((c) => c.mid));
+  const tolerance = (bottom - top) * 0.08;
+  const near = candidates.filter((c) => c.mid >= lowest - tolerance);
+  // Nearest the joining edge among the lowest single-stroke positions.
+  return rtl ? Math.min(...near.map((c) => c.x)) : Math.max(...near.map((c) => c.x));
 }

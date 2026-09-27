@@ -651,12 +651,15 @@ export class ArtboardStage {
       if (d) children.push(new Path(d, { fill: color, objectCaching: false }));
     }
     if (item.overflow) {
-      // Red "+" box: the story continues beyond this frame but has nowhere to go.
+      // Red "+" box just below the frame's end: the story continues but has
+      // nowhere to go. Drawn outside the frame so it never covers text.
       const s = 12;
+      const left = layer.width - s;
+      const top = layer.height + 4;
       children.push(
         new Rect({
-          left: layer.width - s - 2,
-          top: layer.height - s - 2,
+          left,
+          top,
           width: s,
           height: s,
           originX: 'left',
@@ -666,12 +669,8 @@ export class ArtboardStage {
           strokeWidth: 1.5,
         }),
         new Path(
-          `M${String(layer.width - 2 - s / 2)} ${String(layer.height - s)}V${String(layer.height - 4)}M${String(layer.width - s)} ${String(layer.height - 2 - s / 2)}H${String(layer.width - 4)}`,
-          {
-            stroke: '#d92d20',
-            strokeWidth: 1.5,
-            fill: null,
-          },
+          `M${String(left + s / 2)} ${String(top + 2.5)}V${String(top + s - 2.5)}M${String(left + 2.5)} ${String(top + s / 2)}H${String(left + s - 2.5)}`,
+          { stroke: '#d92d20', strokeWidth: 1.5, fill: null },
         ),
       );
     }

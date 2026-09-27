@@ -440,7 +440,8 @@ const style = (
 
 /** Paragraph styles every new document starts with (Urdu newspaper defaults). */
 export const DEFAULT_PARAGRAPH_STYLES: readonly ParagraphStyle[] = [
-  style('body', 'Body', 16, 'justify', { spaceAfter: 6 }),
+  // Nastaliq body text is traditionally justified with word spaces; Naskh with kashida.
+  style('body', 'Body', 16, 'justify', { spaceAfter: 6, justify: 'space' }),
   style('headline', 'Headline', 48, 'center', { spaceAfter: 8 }),
   style('subhead', 'Subheading', 24, 'right', { spaceBefore: 6, spaceAfter: 4 }),
   style('byline', 'Byline', 13, 'right', { color: '#555555', spaceAfter: 6 }),

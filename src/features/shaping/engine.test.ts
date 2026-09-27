@@ -177,6 +177,18 @@ describe('spacing with real fonts (right to left)', () => {
     expect(tuned.glyphs.map((g) => g.glyphId)).toEqual(plain.glyphs.map((g) => g.glyphId));
     expect(tuned.width).not.toBeCloseTo(plain.width);
   });
+
+  it('stretched kashida keeps the joined letter attached to the next one', () => {
+    // "سال": seen stretches; alef sits over seen's tail in Nastaliq but must not
+    // move away from lam.
+    const stretch = { ...options, kashidaMode: 'stretch' as const };
+    const plain = engine.layout('nastaliq', 'سال', stretch);
+    const long = engine.layout('nastaliq', 'سال', { ...stretch, kashida: { '0': 1 } });
+    const xOf = (layout: typeof plain, letter: number) =>
+      layout.glyphs.find((g) => g.letter === letter)?.x ?? NaN;
+    expect(long.width).toBeCloseTo(plain.width + 100);
+    expect(xOf(long, 1) - xOf(long, 2)).toBeCloseTo(xOf(plain, 1) - xOf(plain, 2));
+  });
 });
 
 describe('coverage', () => {
