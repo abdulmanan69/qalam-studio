@@ -144,6 +144,15 @@ function useEditorShortcuts(actions: EditorActions, onDownload: () => void) {
     on('baselineTool', () => {
       store.getState().setTool('baseline');
     }),
+    on('boxTool', () => {
+      store.getState().setTool('box');
+    }),
+    on('ruleTool', () => {
+      store.getState().setTool('rule');
+    }),
+    on('ellipseTool', () => {
+      store.getState().setTool('ellipse');
+    }),
     on('frameTool', () => {
       store.getState().setTool('frame');
     }),
@@ -382,6 +391,10 @@ function EditorWorkspace({ project }: { project: Project }) {
       },
       createFrame: (rect) => {
         actions.createFrame(rect);
+        useEditorStore.getState().setTool('select');
+      },
+      createShape: (tool, rect) => {
+        actions.createShape(tool, rect);
         useEditorStore.getState().setTool('select');
       },
     }),

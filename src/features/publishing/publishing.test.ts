@@ -5,9 +5,16 @@ import { deleteLayers } from '@/features/editor/layer-ops';
 import { migrateProject } from '@/features/projects/migrations';
 import { buildProject } from '@/features/projects/repository';
 import { projectSchema, type Project, type TextFrame } from '@/features/projects/schema';
-import { bookChapter, magazineArticle, newspaperFrontPage } from '@/features/templates/publications';
+import {
+  bookChapter,
+  dailyFrontPage,
+  magazineArticle,
+  newspaperFrontPage,
+  opinionPage,
+} from '@/features/templates/publications';
 
 import {
+  columnRuleLines,
   fitToPageGrid,
   frameExclusions,
   layoutGuides,
@@ -27,6 +34,7 @@ import {
   movePage,
   unlinkFrame,
 } from './publishing-ops';
+import { createShape, shapeStrokes } from './shapes';
 
 function document(): Project {
   const p = buildProject({ name: 'Paper', presetId: 'tabloid', width: 1056, height: 1632 }, 0);
@@ -158,6 +166,7 @@ describe('pages and masters', () => {
 describe('publication templates and migration', () => {
   it.each([
     ['newspaper', newspaperFrontPage],
+    ['Urdu daily', dailyFrontPage],
     ['magazine', magazineArticle],
     ['book', bookChapter],
   ])('builds a valid %s document', (_name, build) => {
@@ -169,15 +178,63 @@ describe('publication templates and migration', () => {
     expect(p.stories.some((s) => new Set(storyFrames(p, s.id).map((f) => f.artboardId)).size > 1)).toBe(true);
   });
 
+  it('builds an opinion page whose author box text ignores the box wrap', () => {
+    const p = opinionPage('Opinion', undefined, 0);
+    expect(projectSchema.safeParse(p).success).toBe(true);
+    const box = p.layers.find((l) => l.kind === 'shape' && l.wrap);
+    expect(box).toBeDefined();
+    const frames = p.layers.filter((l): l is TextFrame => l.kind === 'frame');
+    const author = frames.find((f) => f.ignoreWrap);
+    const column = frames.find((f) => f.columns.count === 4);
+    if (!author || !column) throw new Error('frames missing');
+    expect(frameExclusions(p, author, new Map())).toEqual([]);
+    expect(frameExclusions(p, column, new Map())).toHaveLength(1);
+  });
+
+  it('migrates v4 documents to v5 unchanged', () => {
+    const v4 = { ...structuredClone(document()), schemaVersion: 4 };
+    const migrated = projectSchema.parse(migrateProject(v4));
+    expect(migrated.schemaVersion).toBe(5);
+    expect(migrated.layers).toEqual(v4.layers);
+  });
+
   it('migrates v3 documents to v4 with default paragraph styles', () => {
     const v3 = { ...structuredClone(document()), schemaVersion: 3 } as Record<string, unknown>;
     delete v3.stories;
     delete v3.paragraphStyles;
     delete v3.firstPageNumber;
     const migrated = projectSchema.parse(migrateProject(v3));
-    expect(migrated.schemaVersion).toBe(4);
+    expect(migrated.schemaVersion).toBe(5);
     expect(migrated.stories).toEqual([]);
     expect(migrated.paragraphStyles.map((s) => s.id)).toContain('body');
     expect(migrated.firstPageNumber).toBe(1);
+  });
+});
+
+describe('shapes and column rules', () => {
+  it('draws one rule down each gutter', () => {
+    const lines = columnRuleLines({ width: 200, height: 100, inset: 0, columns: { count: 3, gutter: 10 } });
+    expect(lines).toEqual([
+      { x: 65, y0: 0, y1: 100 },
+      { x: 135, y0: 0, y1: 100 },
+    ]);
+    expect(columnRuleLines({ width: 200, height: 100, inset: 0, columns: { count: 1, gutter: 10 } })).toEqual(
+      [],
+    );
+  });
+
+  it('turns shapes into fill and stroke paths', () => {
+    const box = createShape('a', 'rect', { x: 0, y: 0, width: 100, height: 40 }, { fill: '#000000' });
+    expect(shapeStrokes(box).map((s) => [s.fill, s.stroke])).toEqual([
+      ['#000000', null],
+      [null, '#1a1a1a'],
+    ]);
+    const ellipse = createShape('a', 'ellipse', { x: 0, y: 0, width: 50, height: 50 });
+    expect(shapeStrokes(ellipse)[0]?.d).toContain('A');
+    // Lines follow the longer side; a double rule is two strokes.
+    const vertical = createShape('a', 'line', { x: 0, y: 0, width: 8, height: 300 }, { double: true });
+    expect(shapeStrokes(vertical).map((s) => s.d)).toEqual(['M2.5 0V300', 'M5.5 0V300']);
+    const none = createShape('a', 'line', { x: 0, y: 0, width: 100, height: 8 }, { stroke: null });
+    expect(shapeStrokes(none)).toEqual([]);
   });
 });

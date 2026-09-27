@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { buildProject } from '@/features/projects/repository';
 import { createTextRun } from '@/features/projects/text-runs';
+import { makeFrame } from '@/features/publishing/publishing-ops';
+import { createShape } from '@/features/publishing/shapes';
 import type { TextLayout } from '@/features/shaping/types';
 
 import { crc32, fitCanvasSize, scaleForDpi, setPngDpi } from './png';
@@ -119,6 +121,41 @@ describe('svg export', () => {
     });
     expect(svg).not.toContain('<rect');
     expect(svg).not.toContain('<path');
+  });
+
+  it('draws shapes and frame column rules', () => {
+    const box = createShape(
+      artboard.id,
+      'rect',
+      { x: 10, y: 10, width: 50, height: 30 },
+      { fill: '#112233', double: true, radius: 4 },
+    );
+    const rule = createShape(
+      artboard.id,
+      'line',
+      { x: 0, y: 50, width: 100, height: 8 },
+      { stroke: { color: '#000000', width: 2, dash: 'dashed' } },
+    );
+    const frame = {
+      ...makeFrame(
+        artboard.id,
+        's',
+        0,
+        { x: 0, y: 0, width: 200, height: 100 },
+        {
+          columns: { count: 3, gutter: 10 },
+          inset: 0,
+        },
+      ),
+      columnRule: { color: '#ff0000', width: 1 },
+    };
+    const svg = renderArtboardSvg(artboard, [box, rule, frame], new Map());
+    expect(svg).toContain('fill="#112233"');
+    // A double outline is two strokes.
+    expect(svg.match(/stroke="#1a1a1a"/g)).toHaveLength(2);
+    expect(svg).toContain('stroke-dasharray="8 5"');
+    expect(svg).toContain('d="M65 0V100M135 0V100" stroke="#ff0000"');
+    expect(new DOMParser().parseFromString(svg, 'image/svg+xml').querySelector('parsererror')).toBeNull();
   });
 
   it('prefixes ids inside embedded artwork', () => {

@@ -167,7 +167,7 @@ export function transformedBounds(path: string, m: Matrix): Box | null {
 /** Artboard-space bounds of a layer (null for a text layer that is not shaped yet or is blank). */
 export function layerBounds(layer: Layer, layout: TextLayout | undefined): Box | null {
   if (layer.kind === 'frame') return { x: layer.x, y: layer.y, width: layer.width, height: layer.height };
-  if (layer.kind === 'svg' || layer.kind === 'image') {
+  if (layer.kind === 'svg' || layer.kind === 'image' || layer.kind === 'shape') {
     return transformedBounds(`M0 0L${String(layer.width)} ${String(layer.height)}`, assetMatrix(layer));
   }
   if (!layout) return null;

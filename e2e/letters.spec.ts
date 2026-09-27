@@ -318,3 +318,50 @@ test('publishing: page setup, text frame with columns, linked frame, print PDF',
   expect(pdf.startsWith('%PDF')).toBe(true);
   expect(pdf.match(/\/Type \/Page\b/g)).toHaveLength(2);
 });
+
+test('page design: boxes, rules and the Urdu daily template', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('list', { name: 'Quick Actions' }).getByRole('button', { name: 'New Design' }).click();
+  const dialog = page.getByRole('dialog', { name: 'New design' });
+  await dialog.getByLabel('Name').fill('Layout');
+  await dialog.getByRole('button', { name: 'Create design' }).click();
+  await expect(page.getByRole('textbox', { name: 'Project name' })).toHaveValue('Layout');
+
+  const canvas = page.locator('[data-canvas-root] canvas').last();
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('Canvas not visible');
+  const drag = async (key: string, from: [number, number], to: [number, number]) => {
+    await page.keyboard.press(key);
+    await page.mouse.move(box.x + box.width * from[0], box.y + box.height * from[1]);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * to[0], box.y + box.height * to[1], { steps: 5 });
+    await page.mouse.up();
+  };
+
+  // A box (headline bar): fill it black.
+  await drag('r', [0.2, 0.2], [0.8, 0.35]);
+  const fill = page.getByRole('switch', { name: 'Fill' });
+  await expect(fill).not.toBeChecked();
+  await fill.click();
+  await expect(fill).toBeChecked();
+  await expect(page.getByLabel('Fill color')).toHaveValue('#1a1a1a');
+
+  // A rule: a double, dashed line.
+  await page.keyboard.press('Escape');
+  await drag('l', [0.1, 0.6], [0.9, 0.6]);
+  await page.getByRole('switch', { name: 'Double line' }).click();
+  await page.getByRole('radiogroup', { name: 'Line style' }).getByRole('radio', { name: 'Dashed' }).click();
+  await expect(page.getByRole('radio', { name: 'Dashed' })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByText('Rule', { exact: true }).first()).toBeVisible();
+
+  // The Urdu daily template builds a two-page broadsheet.
+  await page.goto('./#/templates');
+  await page
+    .getByRole('listitem')
+    .filter({ hasText: 'Urdu daily — front page' })
+    .getByRole('button', { name: 'Use template' })
+    .click();
+  await expect(page.getByRole('textbox', { name: 'Project name' })).toHaveValue('Urdu daily — front page');
+  await page.getByRole('tab', { name: 'Pages' }).click();
+  await expect(page.getByRole('list', { name: 'Pages' }).locator('li')).toHaveCount(2);
+});

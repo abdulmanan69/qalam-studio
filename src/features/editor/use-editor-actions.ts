@@ -19,6 +19,7 @@ import {
   type Story,
   type TextFrame,
   type TextRun,
+  type ShapeKind,
 } from '@/features/projects/schema';
 import { baseName, MAX_SVG_BYTES, parseSvg, SVG_ACCEPT } from '@/features/projects/svg-import';
 import { endOfLetter } from '@/features/shaping/joining';
@@ -39,6 +40,7 @@ import {
   type PageSetup,
 } from '@/features/publishing/publishing-ops';
 import { fitToPageGrid } from '@/features/publishing/pages';
+import { createShape } from '@/features/publishing/shapes';
 import { imageSize, MAX_IMAGE_BYTES, pickFile, readAsDataUrl } from '@/lib/files';
 import { applyToPoint, invert } from '@/lib/matrix';
 import { clamp, createId } from '@/lib/utils';
@@ -46,7 +48,7 @@ import { clamp, createId } from '@/lib/utils';
 import type { LayerChange } from './canvas/artboard-stage';
 import { copyLayers, readClipboardLayers } from './clipboard';
 import { applyToDocument, redo, undo, useDocumentStore } from './document-store';
-import { useEditorStore } from './editor-store';
+import { useEditorStore, type ShapeTool } from './editor-store';
 import {
   applyAlternateStyle,
   applyLetterStyle,
@@ -71,6 +73,11 @@ import {
   type ReorderMode,
 } from './layer-ops';
 import { buildUnits, layerBounds, resolveParts, textMatrix, type ResolvedPart } from './units';
+
+const SHAPE_OF_TOOL = { box: 'rect', rule: 'line', ellipse: 'ellipse' } as const satisfies Record<
+  ShapeTool,
+  ShapeKind
+>;
 
 const PASTE_OFFSET = 20;
 
@@ -132,6 +139,8 @@ export interface EditorActions {
   ) => void;
   // Publishing
   createFrame: (rect: { x: number; y: number; width: number; height: number }) => void;
+  /** Draw a box, rule or ellipse; edges snap to the page margins and columns. */
+  createShape: (tool: ShapeTool, rect: { x: number; y: number; width: number; height: number }) => void;
   /** Continue a frame's story in a new frame on the next page (or beside it on this page). */
   addLinkedFrame: (frameId: string, where: 'nextPage' | 'beside') => void;
   unlinkFrame: (frameId: string) => void;
@@ -624,6 +633,24 @@ export function useEditorActions({ artboard, layouts }: Context): EditorActions 
           out.id = createFrame(draft, artboard.id, grid.rect, grid.columns);
         });
         if (out.id) editor().select([out.id]);
+      },
+      createShape: (tool, rect) => {
+        const snapped = fitToPageGrid(artboard, rect).rect;
+        let box = snapped;
+        if (tool === 'rule') {
+          // Snap only along the rule; its thin box stays where it was drawn.
+          box =
+            rect.width >= rect.height
+              ? { ...rect, x: snapped.x, width: snapped.width }
+              : { ...rect, y: snapped.y, height: snapped.height };
+        } else if (tool === 'ellipse') {
+          box = rect;
+        }
+        const shape = createShape(artboard.id, SHAPE_OF_TOOL[tool], box);
+        applyToDocument((draft) => {
+          draft.layers.push(shape);
+        });
+        editor().select([shape.id]);
       },
       addLinkedFrame: (frameId, where) => {
         const project = currentProject();

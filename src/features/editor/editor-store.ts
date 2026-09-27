@@ -10,7 +10,11 @@ import { clampZoom, MAX_ZOOM } from './zoom';
  */
 export const useEditorCommands = create<{ actions: EditorActions | null }>()(() => ({ actions: null }));
 
-export type EditorTool = 'select' | 'hand' | 'kashida' | 'baseline' | 'frame';
+export type EditorTool = 'select' | 'hand' | 'kashida' | 'baseline' | 'frame' | ShapeTool;
+
+/** Tools that draw a shape by dragging a box on the page. */
+export type ShapeTool = 'box' | 'rule' | 'ellipse';
+export const SHAPE_TOOLS: readonly ShapeTool[] = ['box', 'rule', 'ellipse'];
 
 /**
  * Drill-down level inside a text layer. "object" = the whole layer; the other

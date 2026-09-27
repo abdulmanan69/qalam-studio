@@ -22,7 +22,7 @@ A `.qalam` file is a UTF-8 JSON document. MIME type: `application/vnd.qalam+json
 | `app`           | string  | Producer name and version. Informational.                            |
 | `project`       | object  | The project document (below).                                        |
 
-## Project (schema version 4)
+## Project (schema version 5)
 
 ```json
 {
@@ -174,19 +174,20 @@ The authoritative definition is the zod schema in
 
 ### Publishing (schema version 4)
 
-| Field                   | Rules                                                                                                                                                                 |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `artboards[].margins`   | Optional `{ top, bottom, left, right }` in pixels.                                                                                                                    |
-| `artboards[].columns`   | Optional `{ count 1–12, gutter }`: the page's column grid.                                                                                                            |
-| `artboards[].bleed`     | Optional bleed in pixels (0–200).                                                                                                                                     |
-| `artboards[].master`    | `true` for a master page (not printed; its layers appear on pages that use it).                                                                                       |
-| `artboards[].masterId`  | The master page drawn behind this page, or `null`.                                                                                                                    |
-| `layers[].wrap`         | Optional `{ offset }`: text frames keep this many pixels away from the layer's bounding box.                                                                          |
-| `layers[]` kind `frame` | Text frame: `storyId`, `order` (position in the story's thread), `x/y/width/height`, `columns`, `inset`, `background`, `border`.                                      |
-| `layers[]` kind `image` | Photo: `src` (base64 PNG/JPEG/WebP/GIF data URL, ≤ 20 MB), `naturalWidth/Height`, box, `angle`, `opacity`, `fit` (`cover`, `contain`, `stretch`), `focusX/Y` (0–1).   |
-| `stories`               | `{ id, name, paragraphs: [{ text, styleId }] }`: text that flows through the frames with that `storyId`, in `order`.                                                  |
-| `paragraphStyles`       | `{ id, name, fontId, language, fontSize, lineHeight, align (justify/right/center/left), justify (kashida/space), firstIndent (em), spaceBefore, spaceAfter, color }`. |
-| `firstPageNumber`       | Number of the first page. Text containing `{page}` / `{pages}` shows the page number / page count.                                                                    |
+| Field                   | Rules                                                                                                                                                                                                                                                                            |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `artboards[].margins`   | Optional `{ top, bottom, left, right }` in pixels.                                                                                                                                                                                                                               |
+| `artboards[].columns`   | Optional `{ count 1–12, gutter }`: the page's column grid.                                                                                                                                                                                                                       |
+| `artboards[].bleed`     | Optional bleed in pixels (0–200).                                                                                                                                                                                                                                                |
+| `artboards[].master`    | `true` for a master page (not printed; its layers appear on pages that use it).                                                                                                                                                                                                  |
+| `artboards[].masterId`  | The master page drawn behind this page, or `null`.                                                                                                                                                                                                                               |
+| `layers[].wrap`         | Optional `{ offset }`: text frames keep this many pixels away from the layer's bounding box.                                                                                                                                                                                     |
+| `layers[]` kind `frame` | Text frame: `storyId`, `order` (position in the story's thread), `x/y/width/height`, `columns`, `inset`, `background`, `border`; since v5 optional `columnRule` `{ color, width }`, `verticalAlign` (`top`/`center`/`bottom`), `balanceColumns`, `ignoreWrap`.                   |
+| `layers[]` kind `shape` | Since v5. `shape` (`rect`, `ellipse`, `line`), box `x/y/width/height`, `angle`, `opacity`, `fill` (color or `null`), `stroke` `{ color, width, dash (solid/dashed/dotted) }` or `null`, `radius` (box corners), `double` (two strokes). A line runs along its box's longer side. |
+| `layers[]` kind `image` | Photo: `src` (base64 PNG/JPEG/WebP/GIF data URL, ≤ 20 MB), `naturalWidth/Height`, box, `angle`, `opacity`, `fit` (`cover`, `contain`, `stretch`), `focusX/Y` (0–1).                                                                                                              |
+| `stories`               | `{ id, name, paragraphs: [{ text, styleId }] }`: text that flows through the frames with that `storyId`, in `order`.                                                                                                                                                             |
+| `paragraphStyles`       | `{ id, name, fontId, language, fontSize, lineHeight, align (justify/right/center/left), justify (kashida/space), firstIndent (em), spaceBefore, spaceAfter, color }`.                                                                                                            |
+| `firstPageNumber`       | Number of the first page. Text containing `{page}` / `{pages}` shows the page number / page count.                                                                                                                                                                               |
 
 ## Compatibility rules
 

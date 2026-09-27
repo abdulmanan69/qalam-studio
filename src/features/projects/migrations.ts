@@ -74,6 +74,8 @@ const STEPS: Record<number, (doc: UnknownRecord) => UnknownRecord> = {
       : structuredClone(DEFAULT_PARAGRAPH_STYLES),
     firstPageNumber: typeof doc.firstPageNumber === 'number' ? doc.firstPageNumber : 1,
   }),
+  // v4 → v5: shapes and frame column rules are new and optional; nothing to convert.
+  4: (doc) => ({ ...doc, schemaVersion: 5 }),
 };
 
 export function schemaVersionOf(doc: unknown): number | undefined {

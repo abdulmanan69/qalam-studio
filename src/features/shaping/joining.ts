@@ -113,3 +113,47 @@ export function endOfLetter(text: string, index: number): number {
   while (j < text.length && isCombiningMark(text.charCodeAt(j))) j++;
   return j;
 }
+
+function isDigit(code: number): boolean {
+  return (
+    (code >= 0x30 && code <= 0x39) || (code >= 0x0660 && code <= 0x0669) || (code >= 0x06f0 && code <= 0x06f9)
+  );
+}
+
+function isLatinLetter(code: number): boolean {
+  return (code >= 0x41 && code <= 0x5a) || (code >= 0x61 && code <= 0x7a) || (code >= 0xc0 && code <= 0x24f);
+}
+
+/** Separators that stay inside a number or Latin word: 12:30, 3.5, 1/2, a@b.com, 021-123. */
+// . , : / @ _ - + and the Arabic decimal and thousands separators.
+const RUN_JOINERS = new Set([0x2e, 0x2c, 0x3a, 0x2f, 0x40, 0x5f, 0x2d, 0x2b, 0x066b, 0x066c]);
+
+/**
+ * Left-to-right runs inside right-to-left text (a simplified bidi pass):
+ * numbers and Latin words, with separators between them, are read left to
+ * right. Returns a run number per UTF-16 position, or -1 outside a run.
+ */
+export function ltrRunIds(text: string): number[] {
+  const ids: number[] = new Array<number>(text.length).fill(-1);
+  const strong = (i: number) => {
+    const c = text.charCodeAt(i);
+    return isDigit(c) || isLatinLetter(c);
+  };
+  let run = -1;
+  let next = 0;
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    const inRun = run >= 0 && ids[i - 1] === run;
+    if (strong(i)) {
+      if (!inRun) run = next++;
+      ids[i] = run;
+    } else if (inRun && i + 1 < text.length && strong(i + 1)) {
+      // A separator, or a space between two Latin words, continues the run.
+      const joins =
+        RUN_JOINERS.has(code) ||
+        (code === 0x20 && isLatinLetter(text.charCodeAt(i - 1)) && isLatinLetter(text.charCodeAt(i + 1)));
+      if (joins) ids[i] = run;
+    }
+  }
+  return ids;
+}

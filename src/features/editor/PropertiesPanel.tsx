@@ -56,6 +56,7 @@ import type { AlignMode } from './layer-ops';
 import { NumberField } from './NumberField';
 import { FramePanel } from '@/features/publishing/FramePanel';
 import { ImagePanel } from '@/features/publishing/ImagePanel';
+import { ShapePanel } from '@/features/publishing/ShapePanel';
 import { TextWrapCard } from '@/features/publishing/TextWrapCard';
 import type { StoryFlows } from '@/features/publishing/use-story-flows';
 
@@ -334,9 +335,11 @@ function TransformFields({
             max={MAX_COORD}
             suffix="px"
             onCommit={(width) => {
-              // Frames resize freely; artwork and photos keep their proportions.
+              // Frames and shapes resize freely; artwork and photos keep their proportions.
               onPatch(
-                layer.kind === 'frame' ? { width } : { width, height: width * (layer.height / layer.width) },
+                layer.kind === 'frame' || layer.kind === 'shape'
+                  ? { width }
+                  : { width, height: width * (layer.height / layer.width) },
               );
             }}
           />
@@ -350,7 +353,7 @@ function TransformFields({
             suffix="px"
             onCommit={(height) => {
               onPatch(
-                layer.kind === 'frame'
+                layer.kind === 'frame' || layer.kind === 'shape'
                   ? { height }
                   : { height, width: height * (layer.width / layer.height) },
               );
@@ -776,6 +779,22 @@ export function PropertiesPanel({
               />
             </CardContent>
           </Card>
+        </>
+      )}
+      {single?.kind === 'shape' && (
+        <>
+          <ShapePanel key={single.id} shape={single} actions={actions} />
+          <Card>
+            <CardContent className="pt-3">
+              <TransformFields
+                layer={single}
+                onPatch={(changes) => {
+                  actions.patchLayer(single.id, (l) => Object.assign(l, changes));
+                }}
+              />
+            </CardContent>
+          </Card>
+          <PositionPad actions={actions} />
         </>
       )}
       {single?.kind === 'image' && (

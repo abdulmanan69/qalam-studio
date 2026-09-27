@@ -216,7 +216,10 @@
       "exportDesign": "Export PNG, SVG or PDF",
       "placeSvg": "Place SVG artwork",
       "frameTool": "Text frame tool",
-      "placeImage": "Place photo (JPG, PNG)"
+      "placeImage": "Place photo (JPG, PNG)",
+      "boxTool": "Box tool",
+      "ruleTool": "Rule line tool",
+      "ellipseTool": "Ellipse tool"
     }
   },
   "quickActions": {
@@ -380,7 +383,13 @@
       "baselineHint": "Click on the artboard to add a horizontal baseline guide. Drag guides to move them; drag off the artboard to remove.",
       "frame": "Text frame",
       "placeImage": "Place photo",
-      "frameHint": "Drag on the page to draw a text frame, or click for a default size. Long text flows through its columns and linked frames."
+      "frameHint": "Drag on the page to draw a text frame, or click for a default size. Long text flows through its columns and linked frames.",
+      "box": "Box",
+      "rule": "Rule line",
+      "ellipse": "Ellipse",
+      "boxHint": "Drag to draw a box (story box, headline bar, ad space); edges snap to margins and columns. Click for a default size.",
+      "ruleHint": "Drag to draw a rule between stories or columns; it follows the direction you drag.",
+      "ellipseHint": "Drag to draw an ellipse or circle; click for a default size."
     },
     "layers": {
       "title": "Layers",
@@ -587,6 +596,8 @@
     "size": "{{width}} × {{height}} px",
     "failed": "Could not create a project from this template.",
     "items": {
+      "daily-front-page": "Urdu daily — front page",
+      "opinion-page": "Opinion page with columnist",
       "bismillah-naskh": "Bismillah in gold Naskh",
       "bismillah-nastaliq": "Bismillah in Nastaliq",
       "name-nastaliq": "Name in Nastaliq",
@@ -822,6 +833,32 @@
     "spaceBefore": "Before",
     "spaceAfter": "After",
     "stylesHint": "Changing a style updates every paragraph that uses it, in every story.",
-    "printMarks": "Crop marks and bleed (for the printer)"
+    "printMarks": "Crop marks and bleed (for the printer)",
+    "shapes": {
+      "rect": "Box",
+      "line": "Rule",
+      "ellipse": "Ellipse"
+    },
+    "shapeKind": "Shape",
+    "fill": "Fill",
+    "fillColor": "Fill color",
+    "stroke": "Outline",
+    "line": "Line",
+    "strokeColor": "Line color",
+    "strokeWidth": "Thickness",
+    "dash": "Line style",
+    "dash_solid": "Solid",
+    "dash_dashed": "Dashed",
+    "dash_dotted": "Dotted",
+    "double": "Double line",
+    "radius": "Corners",
+    "columnRule": "Column rules",
+    "columnRuleColor": "Rule color",
+    "verticalAlign": "Text position",
+    "valign_top": "Top",
+    "valign_center": "Middle",
+    "valign_bottom": "Bottom",
+    "balanceColumns": "Balance columns",
+    "ignoreWrap": "Ignore text wrap"
   }
 }

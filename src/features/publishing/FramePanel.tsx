@@ -8,8 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { previewFontStack } from '@/features/fonts/font-faces';
 import { resolveFont } from '@/features/fonts/registry';
-import { MAX_COLUMNS, type Project, type TextFrame } from '@/features/projects/schema';
+import { MAX_COLUMNS, VERTICAL_ALIGNS, type Project, type TextFrame } from '@/features/projects/schema';
 import type { FlowResult } from '@/features/shaping/flow';
+import { cn } from '@/lib/utils';
 
 import { NumberField } from '../editor/NumberField';
 import { ColorField } from '../editor/StyleEditor';
@@ -298,6 +299,100 @@ export function FramePanel({ project, frame, flow, actions }: FramePanelProps) {
               />
             </div>
           )}
+          {frame.columns.count > 1 && (
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor={`${id}-rule`}>{t('publishing.columnRule')}</Label>
+              <Switch
+                id={`${id}-rule`}
+                checked={Boolean(frame.columnRule)}
+                onCheckedChange={(on) => {
+                  patch((f) => {
+                    f.columnRule = on ? { color: '#1a1a1a', width: 0.75 } : null;
+                  });
+                }}
+              />
+            </div>
+          )}
+          {frame.columns.count > 1 && (
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor={`${id}-balance`}>{t('publishing.balanceColumns')}</Label>
+              <Switch
+                id={`${id}-balance`}
+                checked={frame.balanceColumns ?? false}
+                onCheckedChange={(on) => {
+                  patch((f) => {
+                    f.balanceColumns = on;
+                  });
+                }}
+              />
+            </div>
+          )}
+          {frame.columns.count > 1 && frame.columnRule && (
+            <div className="grid grid-cols-[1fr_6rem] items-end gap-2">
+              <ColorField
+                id={`${id}-rule-color`}
+                label={t('publishing.columnRuleColor')}
+                value={frame.columnRule.color}
+                onChange={(color) => {
+                  patch((f) => {
+                    if (f.columnRule) f.columnRule.color = color;
+                  });
+                }}
+              />
+              <NumberField
+                key={`rw-${String(frame.columnRule.width)}`}
+                id={`${id}-rule-width`}
+                label={t('publishing.borderWidth')}
+                value={frame.columnRule.width}
+                min={0}
+                max={20}
+                suffix="px"
+                onCommit={(width) => {
+                  patch((f) => {
+                    if (f.columnRule) f.columnRule.width = width;
+                  });
+                }}
+              />
+            </div>
+          )}
+          <div className="flex items-center justify-between gap-2">
+            <Label htmlFor={`${id}-ignore-wrap`}>{t('publishing.ignoreWrap')}</Label>
+            <Switch
+              id={`${id}-ignore-wrap`}
+              checked={frame.ignoreWrap ?? false}
+              onCheckedChange={(on) => {
+                patch((f) => {
+                  f.ignoreWrap = on;
+                });
+              }}
+            />
+          </div>
+          <div className="grid gap-1">
+            <span id={`${id}-valign`} className="text-[0.6875rem] font-medium text-muted-foreground">
+              {t('publishing.verticalAlign')}
+            </span>
+            <div role="radiogroup" aria-labelledby={`${id}-valign`} className="grid grid-cols-3 gap-1">
+              {VERTICAL_ALIGNS.map((align) => (
+                <button
+                  key={align}
+                  type="button"
+                  role="radio"
+                  aria-checked={(frame.verticalAlign ?? 'top') === align}
+                  className={cn(
+                    'h-7 rounded-md border border-input px-1 text-[0.6875rem] hover:bg-accent',
+                    (frame.verticalAlign ?? 'top') === align && 'border-ring bg-accent font-medium',
+                  )}
+                  onClick={() => {
+                    patch((f) => {
+                      f.verticalAlign = align;
+                    });
+                  }}
+                >
+                  {t(`publishing.valign_${align}`)}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div className="grid gap-1.5 border-t border-border pt-2">
             <p className="text-xs" role="status">

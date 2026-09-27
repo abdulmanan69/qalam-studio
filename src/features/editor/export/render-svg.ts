@@ -3,9 +3,12 @@ import type {
   ImageLayer,
   Layer,
   LayerStyle,
+  ShapeLayer,
   SvgAsset,
   TextFrame,
 } from '@/features/projects/schema';
+import { columnRuleLines } from '@/features/publishing/pages';
+import { shapeStrokes } from '@/features/publishing/shapes';
 import type { FlowFrameResult } from '@/features/shaping/flow';
 import type { TextLayout } from '@/features/shaping/types';
 import { toSvgMatrix } from '@/lib/matrix';
@@ -135,6 +138,16 @@ function frameMarkup(frame: TextFrame, flow: FlowFrameResult | undefined): strin
     byColor.set(line.color, list);
   }
   for (const [color, paths] of byColor) parts.push(`<path d="${paths.join('')}" fill="${color}"/>`);
+  if (frame.columnRule && frame.columnRule.width > 0) {
+    const d = columnRuleLines(frame)
+      .map((l) => `M${num(l.x)} ${num(l.y0)}V${num(l.y1)}`)
+      .join('');
+    if (d) {
+      parts.push(
+        `<path d="${d}" stroke="${frame.columnRule.color}" stroke-width="${num(frame.columnRule.width)}" fill="none"/>`,
+      );
+    }
+  }
   if (frame.border && frame.border.width > 0) {
     const w = frame.border.width;
     parts.push(
@@ -142,6 +155,20 @@ function frameMarkup(frame: TextFrame, flow: FlowFrameResult | undefined): strin
     );
   }
   return `<g transform="translate(${num(frame.x)} ${num(frame.y)})">${parts.join('')}</g>`;
+}
+
+function shapeMarkup(shape: ShapeLayer): string {
+  const paths = shapeStrokes(shape).map((s) => {
+    const attrs = [`d="${s.d}"`, `fill="${s.fill ?? 'none'}"`];
+    if (s.stroke) {
+      attrs.push(`stroke="${s.stroke}"`, `stroke-width="${num(s.strokeWidth)}"`);
+      if (s.dash.length > 0) attrs.push(`stroke-dasharray="${s.dash.map(num).join(' ')}"`);
+      if (s.round) attrs.push('stroke-linecap="round"');
+    }
+    return `<path ${attrs.join(' ')}/>`;
+  });
+  const opacity = shape.opacity < 1 ? ` opacity="${num(shape.opacity)}"` : '';
+  return `<g transform="${toSvgMatrix(assetMatrix(shape))}"${opacity}>${paths.join('')}</g>`;
 }
 
 function layerMarkup(
@@ -154,6 +181,7 @@ function layerMarkup(
   if (layer.kind === 'svg') return assetMarkup(layer, index);
   if (layer.kind === 'image') return imageMarkup(layer);
   if (layer.kind === 'frame') return frameMarkup(layer, flows?.get(layer.id));
+  if (layer.kind === 'shape') return shapeMarkup(layer);
   const layout = layouts.get(layer.id);
   if (!layout) return '';
   const d = visiblePath(resolveParts(layer, layout));

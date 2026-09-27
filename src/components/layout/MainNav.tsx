@@ -268,6 +268,16 @@ export function MainNav() {
               useEditorStore.getState().setTool('frame');
             }}
           />
+          {(['box', 'rule', 'ellipse'] as const).map((tool) => (
+            <CommandItem
+              key={tool}
+              label={t(`editor.tools.${tool}`)}
+              combo={shortcutCombo(`${tool}Tool`)}
+              onSelect={() => {
+                useEditorStore.getState().setTool(tool);
+              }}
+            />
+          ))}
           <DropdownMenuLabel className="tracking-normal normal-case">{t('text.editHint')}</DropdownMenuLabel>
         </NavMenu>
 

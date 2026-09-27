@@ -112,6 +112,24 @@ export function layoutGuides(artboard: Artboard): { xs: number[]; ys: number[] }
   return { xs: [...xs], ys: [box.y, box.y + box.height] };
 }
 
+/**
+ * Column rules of a frame: one vertical line down the middle of each gutter,
+ * inside the frame's inset (frame coordinates).
+ */
+export function columnRuleLines(
+  frame: Pick<TextFrame, 'width' | 'height' | 'inset' | 'columns'>,
+): { x: number; y0: number; y1: number }[] {
+  const { count, gutter } = frame.columns;
+  if (count < 2) return [];
+  const inner = Math.max(0, frame.width - frame.inset * 2);
+  const width = (inner - gutter * (count - 1)) / count;
+  return Array.from({ length: count - 1 }, (_, i) => ({
+    x: frame.inset + (i + 1) * width + i * gutter + gutter / 2,
+    y0: frame.inset,
+    y1: frame.height - frame.inset,
+  }));
+}
+
 /** Frames of a story in threading order. */
 export function storyFrames(project: Pick<Project, 'layers'>, storyId: string): TextFrame[] {
   return project.layers
@@ -147,6 +165,7 @@ export function frameExclusions(
   frame: TextFrame,
   layouts: ReadonlyMap<string, TextLayout>,
 ): FlowRect[] {
+  if (frame.ignoreWrap) return [];
   const artboard = project.artboards.find((a) => a.id === frame.artboardId);
   const onPage = project.layers.filter((l) => l.artboardId === frame.artboardId);
   const fromMaster = artboard ? masterLayersFor(project, artboard) : [];
@@ -189,6 +208,8 @@ export function storyFlowRequest(
     inset: f.inset,
     columns: f.columns,
     exclusions: frameExclusions(project, f, layouts),
+    ...(f.verticalAlign && f.verticalAlign !== 'top' ? { verticalAlign: f.verticalAlign } : {}),
+    ...(f.balanceColumns ? { balance: true } : {}),
   }));
   return {
     fonts: [...fonts].map(([key, url]) => ({ key, url })),

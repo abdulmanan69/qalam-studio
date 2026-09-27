@@ -57,8 +57,10 @@ export function applyLayerChanges(draft: Draft<Project>, changes: readonly Layer
     } else if (change.kind === 'box' && layer.kind !== 'text') {
       layer.x = round(change.x);
       layer.y = round(change.y);
-      layer.width = round(Math.max(8, change.width));
-      layer.height = round(Math.max(8, change.height));
+      // Shapes may be thin (a rule is a line); other boxes keep a usable size.
+      const min = layer.kind === 'shape' ? 1 : 8;
+      layer.width = round(Math.max(min, change.width));
+      layer.height = round(Math.max(min, change.height));
       if (layer.kind !== 'frame') layer.angle = round(change.angle);
     }
   }

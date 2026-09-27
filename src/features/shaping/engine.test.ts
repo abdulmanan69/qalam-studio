@@ -191,6 +191,25 @@ describe('spacing with real fonts (right to left)', () => {
   });
 });
 
+describe('numbers and Latin words in right-to-left text', () => {
+  const xOf = (layout: ReturnType<typeof engine.layout>, cluster: number) =>
+    layout.glyphs.find((g) => g.cluster === cluster)?.x ?? NaN;
+
+  it.each(['nastaliq', 'amiri'])('keeps digits in reading order in %s', (key) => {
+    // "سال ۱۲ نئے": the ones digit (index 5) is right of the tens digit (index 4).
+    const layout = engine.layout(key, 'سال ۱۲ نئے', { language: 'ur', fontSize: 40 });
+    expect(xOf(layout, 4)).toBeLessThan(xOf(layout, 5));
+    // The number still sits left of the word before it (right-to-left words).
+    expect(xOf(layout, 5)).toBeLessThan(xOf(layout, 0));
+  });
+
+  it('keeps dates and Latin words left to right', () => {
+    const date = engine.layout('amiri', '2026/09/27', { language: 'ar', fontSize: 40 });
+    const xs = date.glyphs.map((g) => g.cluster);
+    expect(xs).toEqual([...xs].sort((a, b) => a - b));
+  });
+});
+
 describe('coverage', () => {
   it('reports strings with missing glyphs', () => {
     expect(engine.coverage('amiri', ['بسم', 'ﷺ', '۝', 'A😀'])).toEqual([true, true, true, false]);
@@ -235,6 +254,34 @@ describe('text flow through frames', () => {
     const full = lines.filter((l) => l.x > 190).slice(0, -1);
     for (const line of full.slice(0, 3)) expect(line.width).toBeGreaterThan(185);
     expect(lines.every((l) => l.d.startsWith('M'))).toBe(true);
+  });
+
+  it('balances the columns of a short story', () => {
+    const tall = { ...frame('a', 3), height: 600 };
+    const short = 'یہ ایک خبر کا متن ہے جو کالموں میں بہتا ہے۔ '.repeat(8).trim();
+    const input = { styles: [body], paragraphs: [{ text: short, style: 0 }] };
+    const top = engine.flow({ ...input, frames: [tall] }).frames[0]?.lines ?? [];
+    const even = engine.flow({ ...input, frames: [{ ...tall, balance: true }] }).frames[0]?.lines ?? [];
+    expect(even).toHaveLength(top.length);
+    // Column of a line from its center: 400 − 2×4 inset − 2×12 gutters = 368 / 3 columns.
+    const columnOf = (l: (typeof top)[number]) => Math.floor((l.x + l.width / 2 - 4) / (368 / 3 + 12));
+    const perColumn = (lines: typeof top) =>
+      [0, 1, 2].map((c) => lines.filter((l) => columnOf(l) === c).length);
+    const counts = perColumn(even);
+    expect(Math.max(...counts) - Math.min(...counts)).toBeLessThanOrEqual(1);
+    expect(Math.max(...even.map((l) => l.y))).toBeLessThan(Math.max(...top.map((l) => l.y)));
+  });
+
+  it('aligns text to the bottom or middle of a frame', () => {
+    const input = { styles: [body], paragraphs: [{ text: 'ایک سطر', style: 0 }] };
+    const box = { ...frame('a', 1), height: 300 };
+    const bottom = engine.flow({ ...input, frames: [{ ...box, verticalAlign: 'bottom' as const }] }).frames[0]
+      ?.lines[0];
+    const middle = engine.flow({ ...input, frames: [{ ...box, verticalAlign: 'center' as const }] }).frames[0]
+      ?.lines[0];
+    if (!bottom || !middle) throw new Error('no lines');
+    expect(bottom.y + bottom.height).toBeCloseTo(300 - 4);
+    expect(middle.y + middle.height / 2).toBeCloseTo(150);
   });
 
   it('continues into the next frame and reports overflow when frames run out', () => {

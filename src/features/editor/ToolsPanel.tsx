@@ -1,11 +1,14 @@
 import {
   Baseline,
+  Circle,
   Columns3,
   Hand,
   Image as ImageIcon,
   ImagePlus,
   MousePointer2,
+  Minus,
   MoveHorizontal,
+  Square,
   Type,
   type LucideIcon,
 } from 'lucide-react';
@@ -38,9 +41,15 @@ const TOOLS: readonly ToolDef[] = [
   { id: 'frame', icon: Columns3, combo: shortcutCombo('frameTool') },
   { id: 'placeImage', icon: ImageIcon, combo: shortcutCombo('placeImage') },
   { id: 'placeSvg', icon: ImagePlus, combo: shortcutCombo('placeSvg') },
+  { id: 'box', icon: Square, combo: shortcutCombo('boxTool') },
+  { id: 'rule', icon: Minus, combo: shortcutCombo('ruleTool') },
+  { id: 'ellipse', icon: Circle, combo: shortcutCombo('ellipseTool') },
 ];
 
-const MODES = new Set<ToolId>(['select', 'hand', 'kashida', 'baseline', 'frame']);
+const MODES = new Set<ToolId>(['select', 'hand', 'kashida', 'baseline', 'frame', 'box', 'rule', 'ellipse']);
+const HINTS = ['kashida', 'baseline', 'frame', 'box', 'rule', 'ellipse'] as const;
+type HintTool = (typeof HINTS)[number];
+const hasHint = (tool: EditorTool): tool is HintTool => (HINTS as readonly string[]).includes(tool);
 
 export function ToolsPanel({ actions }: { actions: EditorActions }) {
   const { t } = useTranslation();
@@ -93,7 +102,7 @@ export function ToolsPanel({ actions }: { actions: EditorActions }) {
             );
           })}
         </div>
-        {(tool === 'kashida' || tool === 'baseline' || tool === 'frame') && (
+        {hasHint(tool) && (
           <p className="px-1 text-[0.6875rem] text-muted-foreground" role="status">
             {t(`editor.tools.${tool}Hint`)}
           </p>

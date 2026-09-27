@@ -56,7 +56,11 @@ All seven phases of the [roadmap](docs/roadmap.md) are complete.
 - ✅ **Photos** (JPG/PNG/WebP/GIF) with fill-and-crop, and **text wrap** around any object
 - ✅ **Page setup** with newspaper sizes (tabloid, Berliner, broadsheet), margins, column grid and
   bleed; **master pages** with automatic **page numbers**
-- ✅ Print **PDF with crop marks and bleed**; newspaper, magazine and book templates
+- ✅ **Boxes, rules and ellipses** (double and dashed lines, rounded corners), reverse headline
+  bars, **column rules**, **balanced columns**, vertical text position
+- ✅ Numbers and Latin words read left to right inside Urdu and Arabic text
+- ✅ Print **PDF with crop marks and bleed**; Urdu daily front page, opinion page, magazine and
+  book templates
 
 **Design tools (phase 5)**
 

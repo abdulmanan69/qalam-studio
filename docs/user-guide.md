@@ -216,6 +216,7 @@ Press **?** anywhere for the full list. The most useful ones:
 | Nudge                                   | Arrows (Shift: 10 px)                      |
 | Zoom in / out / fit / 100 %             | `Ctrl+=` / `Ctrl+-` / `Shift+1` / `Ctrl+0` |
 | Grid / Rulers                           | `Ctrl+'` / `Shift+R`                       |
+| Text frame / Box / Rule / Ellipse       | `F` / `R` / `L` / `E`                      |
 | Export / Download project               | `Ctrl+E` / `Ctrl+S`                        |
 
 On macOS use ⌘ instead of Ctrl.
@@ -300,9 +301,17 @@ Spacing works together with kashida, letter styles and moved dots.
 Qalam Studio lays out complete multi-page publications — a daily newspaper, a magazine or a book —
 with long text that flows by itself through columns and from page to page.
 
-The fastest start is **Templates → Newspapers, magazines & books**: a newspaper front page (with
-masthead, headline, photo, five columns and a story continued on page 2), a magazine article and
-a book chapter. Replace the sample text and photos and you are done. To build your own:
+The fastest start is **Templates → Newspapers, magazines & books**:
+
+- **Urdu daily — front page**: a broadsheet in the style of a Pakistani daily — boxed masthead
+  with dateline, weather ear, banner headline with a red deck, a red breaking-news strip, a lead
+  story with photo that jumps to page 2, reverse (white on black) and boxed headlines, column
+  rules, short stories, an advertisement and an index box.
+- **Opinion page with columnist**: running head, a column with its column-name bar and an author
+  box (photo, name, contact) that the text wraps around, plus the editorial and letters columns.
+- A simpler newspaper front page, a magazine article and a book chapter.
+
+Replace the sample text and photos and you are done. To build your own:
 
 ### Page setup
 
@@ -339,7 +348,13 @@ page (or **Use on all pages**). Type **{page}** in any text to show the page num
    through all of them, and editing the text re-flows everything. _Frame 2 of 3 in this story_
    tells you where you are; **Unlink** takes a frame out of the chain.
 5. Each frame has its own number of **columns**, **gutter**, **inset**, **background** and
-   **border** (for boxed stories).
+   **border** (for boxed stories), and:
+   - **Column rules** — a thin line down every gutter, as in most Urdu papers.
+   - **Balance columns** — short stories end on the same line in every column instead of
+     filling the first column and leaving the last one empty.
+   - **Text position** — top, middle or bottom. Use _Middle_ for headline bars and labels.
+   - **Ignore text wrap** — for text placed _inside_ a wrapped box (a columnist's name in the
+     author box, a caption on a photo).
 
 The word counter shows how many words are placed, so you always know whether an article fits.
 
@@ -368,6 +383,27 @@ follows.
   this** in the _Text wrap_ card. Frames on the page keep the chosen **distance** around it —
   perfect for photos in the middle of a story, pull quotes and advertisements.
 
+### Boxes, rules and headline bars
+
+Three drawing tools design the page around the stories:
+
+- **Box** (`R`): drag a box — a frame around a story, a headline bar, a coloured strip, an
+  advertisement space. Give it a **fill**, an **outline** (solid, dashed or dotted, single or
+  **double**) and **rounded corners**.
+- **Rule** (`L`): drag a line between stories or down between columns; it follows the direction
+  you drag. Switch on **Double line** for the classic newspaper double rule.
+- **Ellipse** (`E`): circles and ovals (badges, price tags, photo masks).
+
+Boxes and rules snap to the margins and columns. Switch on **Text flows around this** for a box
+the story should wrap around.
+
+**Reverse headlines** (white on black or red, as in _تازہ ترین_ strips): draw a text frame, turn
+on its **background**, choose a white paragraph style and set **Text position** to _Middle_ — or
+use the _Reverse headline_ style that the newspaper templates include.
+
+**Numbers** (dates, prices, phone numbers) and Latin words inside Urdu text are written left to
+right automatically: ۲۰۲۶، ۰۲۱-۱۲۳۴۵۶۷، www.example.com.
+
 ### Printing
 
 **Export → PDF** creates one page per document page (all pages by default). For the printing
@@ -381,7 +417,10 @@ the web, export PNG at 300 DPI or SVG.
   number, and assign it to the pages of that section.
 - Keep all body text in one _Body_ style; adjust leading there (0.6–0.8 for Nastaliq) until the
   columns look right.
-- Draw frames on the column grid; use **Continue on next page** for jumps (“باقی صفحہ ۵ پر”).
+- Draw frames on the column grid; use **Continue on next page** for jumps (“باقی صفحہ ۵ پر”) and
+  put the jump line in a small frame under the story (the _Jump line_ style).
+- Separate stories with **rules**, and switch on **column rules** and **balance columns** for
+  short stories.
 - Save a **named version** before closing each edition; download the `.qalam` file as the archive
   copy.
 

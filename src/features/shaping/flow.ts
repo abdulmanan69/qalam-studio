@@ -44,6 +44,10 @@ export interface FlowFrame {
   columns: { count: number; gutter: number };
   /** Areas to keep clear (text wrap), in frame coordinates. */
   exclusions: FlowRect[];
+  /** Where the text sits when it does not fill the frame. Default "top". */
+  verticalAlign?: 'top' | 'center' | 'bottom';
+  /** Balance the columns (used for the story's last frame). */
+  balance?: boolean;
 }
 
 export interface FlowInput {
@@ -268,8 +272,40 @@ function linePath(layout: TextLayout, x: number, y: number): string {
 
 /**
  * Flow paragraphs through frames. `fonts` must contain every style's font.
+ * When the last frame balances its columns, the text is flowed into the
+ * shortest version of that frame that still holds it, so all columns end
+ * at about the same line.
  */
 export function flowText(fonts: ReadonlyMap<string, LayoutFont>, input: FlowInput): FlowResult {
+  const last = input.frames.at(-1);
+  if (!last?.balance || last.columns.count < 2) return flowOnce(fonts, input, false);
+  // Line breaks depend only on word widths, so the search measures without
+  // building outlines; only the final flow is drawn.
+  const probe = flowOnce(fonts, input, true);
+  const lines = probe.frames.at(-1)?.lines ?? [];
+  if (probe.overflow || lines.length === 0) return flowOnce(fonts, input, false);
+  const withHeight = (height: number): FlowInput => ({
+    ...input,
+    frames: input.frames.map((f) => (f === last ? { ...f, height } : f)),
+  });
+  // Binary search the lowest height that still fits everything.
+  let low = last.inset * 2 + Math.min(...lines.map((l) => l.height));
+  let high = last.height;
+  for (let step = 0; step < 12 && high - low > 1; step++) {
+    const mid = (low + high) / 2;
+    if (flowOnce(fonts, withHeight(mid), true).overflow) low = mid;
+    else high = mid;
+  }
+  if (high >= last.height) return flowOnce(fonts, input, false);
+  const best = flowOnce(fonts, withHeight(high), false);
+  // Vertical alignment is relative to the frame's real height.
+  const result = best.frames.at(-1);
+  if (result) alignVertically(last, result);
+  return best;
+}
+
+/** One pass through the frames; `measure` places lines without drawing them. */
+function flowOnce(fonts: ReadonlyMap<string, LayoutFont>, input: FlowInput, measure: boolean): FlowResult {
   const rtl = (input.direction ?? 'rtl') === 'rtl';
   const results: FlowFrameResult[] = input.frames.map((f) => ({ id: f.id, lines: [] }));
   const metrics = input.styles.map<StyleMetrics | null>((style) => {
@@ -395,6 +431,20 @@ export function flowText(fonts: ReadonlyMap<string, LayoutFont>, input: FlowInpu
         const lineText = words.slice(next, next + count).join(' ');
         next += count;
         const last = next >= words.length;
+        const result = results[slot.frame];
+        if (measure) {
+          result?.lines.push({
+            d: '',
+            color: style.color,
+            x: slot.x0,
+            y: slot.top,
+            width: 0,
+            height: m.lineAdvance,
+          });
+          placedWords += count;
+          firstLine = false;
+          continue;
+        }
         const target = style.align === 'justify' && !last ? available : null;
         const { layout, ink } = layoutLine(m.font, lineText, style, target, rtl);
         const align = style.align === 'justify' ? (rtl ? 'right' : 'left') : style.align;
@@ -403,7 +453,6 @@ export function flowText(fonts: ReadonlyMap<string, LayoutFont>, input: FlowInpu
         if (align === 'center') x = (slot.x0 + slot.x1) / 2 - (ink.left + ink.right) / 2;
         else if (align === 'left') x = slot.x0 + (rtl ? 0 : indent) - ink.left;
         else x = slot.x1 - (rtl ? indent : 0) - ink.right;
-        const result = results[slot.frame];
         result?.lines.push({
           d: linePath(layout, x, slot.top + m.baselineShift),
           color: style.color,
@@ -421,5 +470,25 @@ export function flowText(fonts: ReadonlyMap<string, LayoutFont>, input: FlowInpu
     y += style.spaceAfter;
   }
 
+  input.frames.forEach((f, i) => {
+    const result = results[i];
+    if (result) alignVertically(f, result);
+  });
   return { frames: results, overflow, placedWords, totalWords };
+}
+
+/** Move a frame's lines down to center or bottom-align the text block. */
+function alignVertically(frame: FlowFrame, result: FlowFrameResult): void {
+  const align = frame.verticalAlign ?? 'top';
+  if (align === 'top' || result.lines.length === 0) return;
+  const top = Math.min(...result.lines.map((l) => l.y));
+  const bottom = Math.max(...result.lines.map((l) => l.y + l.height));
+  const free = frame.height - frame.inset - bottom;
+  const shift = align === 'center' ? (frame.height - (bottom - top)) / 2 - top : free;
+  if (shift <= 0.01) return;
+  const m = translate(0, shift);
+  for (const line of result.lines) {
+    line.d = transformPathData(line.d, m);
+    line.y += shift;
+  }
 }

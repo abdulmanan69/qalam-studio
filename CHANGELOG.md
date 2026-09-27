@@ -47,6 +47,16 @@ Phases 3–7 — letter-level editing, design tools, templates, languages, offli
   kashida/space justification aligned on the ink, text wrap, paragraph styles, placed photos,
   page setup (newspaper sizes, margins, column grid, bleed), master pages with page-number tokens,
   print PDF with crop marks and bleed, and newspaper/magazine/book templates. Project schema v4.
+- Page design: box, rule and ellipse tools (`R`, `L`, `E`) with fill, solid/dashed/dotted and
+  double outlines and rounded corners; frame column rules, balanced columns, vertical text
+  position and "ignore text wrap"; Urdu daily front page and opinion page templates. Project
+  schema v5.
+
+### Fixed
+
+- Numbers and Latin words inside right-to-left text were drawn backwards (۱۲ as ۲۱).
+- Stretched kashida in Nastaliq no longer deforms neighbouring letters or pulls a joined letter
+  away from the next one; the overflow marker no longer covers text.
 
 ### Changed
 

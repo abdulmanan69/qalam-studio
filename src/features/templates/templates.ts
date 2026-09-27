@@ -15,7 +15,13 @@ import { createTextRun } from '@/features/projects/text-runs';
 import type { TextLayout } from '@/features/shaping/types';
 import { clamp } from '@/lib/utils';
 
-import { bookChapter, magazineArticle, newspaperFrontPage } from './publications';
+import {
+  bookChapter,
+  dailyFrontPage,
+  magazineArticle,
+  newspaperFrontPage,
+  opinionPage,
+} from './publications';
 
 /**
  * Starter compositions. Each is a recipe (text, fonts, ornaments, colors),
@@ -36,6 +42,8 @@ export type TemplateId =
   | 'poetry-hafez'
   | 'frame-alhamdulillah'
   | 'frame-mashallah'
+  | 'daily-front-page'
+  | 'opinion-page'
   | 'newspaper-front'
   | 'magazine-article'
   | 'book-chapter';
@@ -303,6 +311,28 @@ export const TEMPLATES: readonly TemplateDef[] = [
         style: { fill: { type: 'solid', color: '#a35d2a' } },
       },
     ],
+  },
+  {
+    id: 'daily-front-page',
+    category: 'publications',
+    presetId: 'broadsheet',
+    width: 1440,
+    height: 2184,
+    background: '#ffffff',
+    ornaments: [],
+    texts: [],
+    document: dailyFrontPage,
+  },
+  {
+    id: 'opinion-page',
+    category: 'publications',
+    presetId: 'tabloid',
+    width: 1056,
+    height: 1632,
+    background: '#ffffff',
+    ornaments: [],
+    texts: [],
+    document: opinionPage,
   },
   {
     id: 'newspaper-front',

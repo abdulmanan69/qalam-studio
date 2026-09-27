@@ -2,6 +2,7 @@ import {
   ArrowDown,
   ArrowUp,
   Camera,
+  Circle,
   Columns3,
   Eye,
   EyeOff,
@@ -10,6 +11,8 @@ import {
   Image as ImageIcon,
   Lock,
   LockOpen,
+  Minus,
+  Square,
   Trash2,
   Type,
   Ungroup,
@@ -112,6 +115,7 @@ export function LayersPanel({ project, artboard, actions }: LayersPanelProps) {
       return textRunLabel(first) || t('publishing.frame');
     }
     if (layer.kind === 'image') return t('publishing.photo');
+    if (layer.kind === 'shape') return t(`publishing.shapes.${layer.shape}`);
     return t('editor.layers.untitledArtwork');
   };
 
@@ -282,7 +286,13 @@ export function LayersPanel({ project, artboard, actions }: LayersPanelProps) {
                 ? Columns3
                 : layer.kind === 'image'
                   ? Camera
-                  : ImageIcon;
+                  : layer.kind === 'shape'
+                    ? layer.shape === 'line'
+                      ? Minus
+                      : layer.shape === 'ellipse'
+                        ? Circle
+                        : Square
+                    : ImageIcon;
           return (
             <li
               key={layer.id}

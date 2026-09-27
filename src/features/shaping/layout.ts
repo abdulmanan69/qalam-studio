@@ -4,6 +4,7 @@ import {
   joinsNext,
   joinsPrevious,
   letterIndices,
+  ltrRunIds,
   wordIndices,
 } from './joining';
 import {
@@ -163,11 +164,13 @@ function buildLine(ctx: LayoutContext, slice: LineSlice, baseline: number): Draf
     if (remainingEm > 1e-6) stretches.push({ letter, extraPx: remainingEm * options.fontSize });
   }
 
-  // 2. Shape.
-  const shapedGlyphs = font.shape(shaped, {
+  // 2. Shape. Numbers and Latin words inside right-to-left text read left to
+  // right: the shaper returns them reversed, so each run is flipped back.
+  let shapedGlyphs = font.shape(shaped, {
     ...options,
     rangeFeatures: mapRangeFeatures(options.rangeFeatures, map),
   });
+  if ((options.direction ?? 'rtl') === 'rtl') shapedGlyphs = orderLtrRuns(shapedGlyphs, ltrRunIds(shaped));
 
   // 3. Place glyphs and split them into parts (line-local, left edge at 0).
   let pen = 0;
@@ -616,4 +619,20 @@ export function joinSplit(bodies: readonly (readonly OutlineCommand[])[], rtl: b
   const near = candidates.filter((c) => c.mid >= lowest - tolerance);
   // Nearest the joining edge among the lowest single-stroke positions.
   return rtl ? Math.min(...near.map((c) => c.x)) : Math.max(...near.map((c) => c.x));
+}
+
+/** Reverse each left-to-right run in a right-to-left glyph sequence (visual order). */
+export function orderLtrRuns<T extends { cluster: number }>(glyphs: T[], runs: readonly number[]): T[] {
+  if (!runs.some((r) => r >= 0)) return glyphs;
+  const out: T[] = [];
+  let i = 0;
+  while (i < glyphs.length) {
+    const run = runs[glyphs[i]?.cluster ?? -1] ?? -1;
+    let j = i + 1;
+    if (run >= 0) while (j < glyphs.length && runs[glyphs[j]?.cluster ?? -1] === run) j++;
+    const group = glyphs.slice(i, j);
+    out.push(...(run >= 0 ? group.reverse() : group));
+    i = j;
+  }
+  return out;
 }

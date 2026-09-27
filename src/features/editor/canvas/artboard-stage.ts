@@ -19,11 +19,13 @@ import type {
   Layer,
   LayerStyle,
   PartOverride,
+  ShapeLayer,
   SvgAsset,
   TextFrame,
   TextRun,
 } from '@/features/projects/schema';
-import { layoutGuides, marginBox, pageColumns } from '@/features/publishing/pages';
+import { columnRuleLines, layoutGuides, marginBox, pageColumns } from '@/features/publishing/pages';
+import { shapeStrokes } from '@/features/publishing/shapes';
 import type { FlowFrameResult } from '@/features/shaping/flow';
 import type { Box, TextLayout } from '@/features/shaping/types';
 import {
@@ -38,7 +40,13 @@ import {
   type Transform,
 } from '@/lib/matrix';
 
-import type { EditLevel, EditorTool, ViewOptions } from '../editor-store';
+import {
+  SHAPE_TOOLS,
+  type EditLevel,
+  type EditorTool,
+  type ShapeTool,
+  type ViewOptions,
+} from '../editor-store';
 import {
   assetMatrix,
   buildUnits,
@@ -115,6 +123,7 @@ export interface StageCallbacks {
   commitKashida: (layerId: string, letter: number, value: number) => void;
   /** Frame tool: a rectangle was drawn (artboard coordinates). */
   createFrame: (rect: { x: number; y: number; width: number; height: number }) => void;
+  createShape: (tool: ShapeTool, rect: { x: number; y: number; width: number; height: number }) => void;
 }
 
 interface ObjectInfo {
@@ -321,7 +330,7 @@ export class ArtboardStage {
         ? 'ew-resize'
         : scene.tool === 'baseline'
           ? 'row-resize'
-          : scene.tool === 'frame'
+          : scene.tool === 'frame' || isShapeTool(scene.tool)
             ? 'crosshair'
             : 'default';
 
@@ -371,6 +380,10 @@ export class ArtboardStage {
     }
     if (layer.kind === 'frame') {
       this.syncFrame(item, layer, existing, selectable, editingOther);
+      return;
+    }
+    if (layer.kind === 'shape') {
+      this.syncShape(layer, existing, selectable, editingOther);
       return;
     }
     if (!item.layout) {
@@ -650,6 +663,21 @@ export class ArtboardStage {
       const d = paths.join('');
       if (d) children.push(new Path(d, { fill: color, objectCaching: false }));
     }
+    if (layer.columnRule && layer.columnRule.width > 0) {
+      const d = columnRuleLines(layer)
+        .map((l) => `M${String(l.x)} ${String(l.y0)}V${String(l.y1)}`)
+        .join('');
+      if (d) {
+        children.push(
+          new Path(d, {
+            fill: null,
+            stroke: layer.columnRule.color,
+            strokeWidth: layer.columnRule.width,
+            objectCaching: false,
+          }),
+        );
+      }
+    }
     if (item.overflow) {
       // Red "+" box just below the frame's end: the story continues but has
       // nowhere to go. Drawn outside the frame so it never covers text.
@@ -692,6 +720,66 @@ export class ArtboardStage {
       natural: { width: layer.width, height: layer.height },
     });
     setObjectMatrix(group, translate(layer.x + center.x, layer.y + center.y));
+    this.canvas.add(group);
+    const entry: LayerEntry = { signature, objects: [group] };
+    this.entries.set(layer.id, entry);
+    this.updateInteractivity(entry, selectable, dimmed, layer.hidden);
+  }
+
+  private syncShape(
+    layer: ShapeLayer,
+    existing: LayerEntry | undefined,
+    selectable: boolean,
+    dimmed: boolean,
+  ): void {
+    const signature: unknown[] = [layer];
+    if (existing && sameSignature(existing.signature, signature)) {
+      this.updateInteractivity(existing, selectable, dimmed, layer.hidden);
+      return;
+    }
+    // An invisible box first, so the group spans the whole shape box (and thin
+    // rules are easy to pick).
+    const children: FabricObject[] = [
+      new Rect({
+        left: 0,
+        top: 0,
+        width: layer.width,
+        height: layer.height,
+        originX: 'left',
+        originY: 'top',
+        fill: 'rgba(0,0,0,0)',
+        strokeWidth: 0,
+      }),
+    ];
+    for (const s of shapeStrokes(layer)) {
+      children.push(
+        new Path(s.d, {
+          fill: s.fill,
+          stroke: s.stroke,
+          strokeWidth: s.strokeWidth,
+          strokeDashArray: s.dash.length > 0 ? s.dash : null,
+          strokeLineCap: s.round ? 'round' : 'butt',
+          objectCaching: false,
+        }),
+      );
+    }
+    const group = new Group(children, {
+      ...SELECTION_STYLE,
+      subTargetCheck: false,
+      interactive: false,
+      objectCaching: false,
+    });
+    const center = group.getCenterPoint();
+    if (existing) for (const object of existing.objects) this.canvas.remove(object);
+    const m = assetMatrix(layer);
+    this.info.set(group, {
+      layerId: layer.id,
+      unitId: null,
+      matrix: m,
+      anchor: { x: center.x, y: center.y },
+      natural: { width: layer.width, height: layer.height },
+    });
+    setObjectMatrix(group, multiply(m, translate(center.x, center.y)));
     this.canvas.add(group);
     const entry: LayerEntry = { signature, objects: [group] };
     this.entries.set(layer.id, entry);
@@ -825,7 +913,7 @@ export class ArtboardStage {
       this.kashidaDrag = this.findKashidaTarget(p);
       return;
     }
-    if (scene.tool === 'frame') {
+    if (scene.tool === 'frame' || isShapeTool(scene.tool)) {
       this.frameDraw = { start: { x: p.x, y: p.y }, end: { x: p.x, y: p.y } };
       return;
     }
@@ -877,6 +965,12 @@ export class ArtboardStage {
       const y = Math.min(draw.start.y, draw.end.y);
       const width = Math.abs(draw.end.x - draw.start.x);
       const height = Math.abs(draw.end.y - draw.start.y);
+      const tool = this.scene?.tool;
+      if (tool && isShapeTool(tool)) {
+        this.callbacks.createShape(tool, shapeRect(tool, draw.start, { x, y, width, height }));
+        this.canvas.requestRenderAll();
+        return;
+      }
       // A click (no drag) makes a frame of a sensible default size.
       const rect =
         width < 12 || height < 12
@@ -1178,3 +1272,30 @@ function nextOverride(part: ResolvedPart, m: Matrix): PartOverride {
 }
 
 export type { EditLevel };
+
+function isShapeTool(tool: EditorTool): tool is ShapeTool {
+  return (SHAPE_TOOLS as readonly string[]).includes(tool);
+}
+
+/**
+ * The box of a drawn shape. A rule follows the drag's longer direction and
+ * gets a thin box (its hit area); a click without dragging makes a default size.
+ */
+function shapeRect(tool: ShapeTool, start: XY, drawn: Box): Box {
+  const round = (b: Box): Box => ({
+    x: Math.round(b.x),
+    y: Math.round(b.y),
+    width: Math.max(1, Math.round(b.width)),
+    height: Math.max(1, Math.round(b.height)),
+  });
+  const clicked = drawn.width < 6 && drawn.height < 6;
+  if (tool === 'rule') {
+    const hitArea = 8;
+    if (clicked) return round({ x: start.x, y: start.y - hitArea / 2, width: 300, height: hitArea });
+    return drawn.width >= drawn.height
+      ? round({ x: drawn.x, y: start.y - hitArea / 2, width: drawn.width, height: hitArea })
+      : round({ x: start.x - hitArea / 2, y: drawn.y, width: hitArea, height: drawn.height });
+  }
+  if (clicked) return round({ x: start.x, y: start.y, width: 240, height: tool === 'ellipse' ? 240 : 160 });
+  return round(drawn);
+}

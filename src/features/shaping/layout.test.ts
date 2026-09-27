@@ -73,7 +73,7 @@ describe('layoutText', () => {
   });
 
   it('places glyph outlines at their origins, split into keyed parts', () => {
-    const layout = layoutText(fakeFont, 'ab', { language: 'en', fontSize: 10 });
+    const layout = layoutText(fakeFont, 'ab', { language: 'en', fontSize: 10, direction: 'ltr' });
     const glyph = layout.glyphs[1];
     expect(glyph?.parts).toHaveLength(1);
     expect(glyph?.parts[0]?.key).toBe('1:98:0:0');

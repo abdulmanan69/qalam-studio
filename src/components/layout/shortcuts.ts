@@ -39,7 +39,10 @@ export type ShortcutId =
   | 'exportDesign'
   | 'placeSvg'
   | 'frameTool'
-  | 'placeImage';
+  | 'placeImage'
+  | 'boxTool'
+  | 'ruleTool'
+  | 'ellipseTool';
 
 export interface ShortcutDefinition {
   id: ShortcutId;
@@ -92,6 +95,9 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = [
   { id: 'placeSvg', combo: 'mod+shift+i', group: 'editor' },
   { id: 'frameTool', combo: 'f', group: 'editor' },
   { id: 'placeImage', combo: 'shift+p', group: 'editor' },
+  { id: 'boxTool', combo: 'r', group: 'editor' },
+  { id: 'ruleTool', combo: 'l', group: 'editor' },
+  { id: 'ellipseTool', combo: 'e', group: 'editor' },
 ];
 
 export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = ['general', 'projects', 'editor'];

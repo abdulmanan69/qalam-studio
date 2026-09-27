@@ -14,8 +14,10 @@ import { z } from 'zod';
  * v3 → v4: publishing — stories flowing through linked text frames, paragraph
  *          styles, placed photos, text wrap, page margins/columns/bleed and
  *          master pages.
+ * v4 → v5: shapes (boxes, rules, ellipses) for page design; frames gain
+ *          column rules and vertical alignment.
  */
-export const PROJECT_SCHEMA_VERSION = 4;
+export const PROJECT_SCHEMA_VERSION = 5;
 
 export const MIN_ARTBOARD_SIZE = 16;
 export const MAX_ARTBOARD_SIZE = 10_000;
@@ -40,6 +42,9 @@ export const TEXT_LANGUAGES = ['ur', 'ar', 'fa', 'ku', 'ps', 'sd'] as const;
 export type TextLanguage = (typeof TEXT_LANGUAGES)[number];
 
 export const TEXT_ALIGNS = ['start', 'center', 'end'] as const;
+export const SHAPE_KINDS = ['rect', 'ellipse', 'line'] as const;
+export const STROKE_DASHES = ['solid', 'dashed', 'dotted'] as const;
+export const VERTICAL_ALIGNS = ['top', 'center', 'bottom'] as const;
 export const PART_KINDS = ['body', 'dot', 'mark'] as const;
 
 export const ARTBOARD_PRESET_IDS = [
@@ -269,6 +274,46 @@ export const textFrameSchema = z.object({
   inset: z.number().min(0).max(500),
   background: hexColorSchema.nullable(),
   border: z.object({ color: hexColorSchema, width: z.number().min(0).max(50) }).nullable(),
+  /** A thin line down the middle of each gutter (absent = none). */
+  columnRule: z
+    .object({ color: hexColorSchema, width: z.number().min(0).max(20) })
+    .nullable()
+    .optional(),
+  /** Where the text sits when it does not fill the frame (absent = top). */
+  verticalAlign: z.enum(VERTICAL_ALIGNS).optional(),
+  /** Even out the columns of a story's last frame, so short text does not leave empty columns. */
+  balanceColumns: z.boolean().optional(),
+  /** Keep the text in place even over layers with text wrap (text inside a wrapped box). */
+  ignoreWrap: z.boolean().optional(),
+});
+
+/**
+ * A drawn shape: box (optionally rounded), ellipse or rule line. Lines run
+ * along the longer side of their box; the box height of a horizontal rule is
+ * only its hit area.
+ */
+export const shapeLayerSchema = z.object({
+  ...layerBase,
+  kind: z.literal('shape'),
+  shape: z.enum(SHAPE_KINDS),
+  x: z.number(),
+  y: z.number(),
+  width: z.number().positive(),
+  height: z.number().positive(),
+  angle: z.number(),
+  opacity: unit,
+  fill: hexColorSchema.nullable(),
+  stroke: z
+    .object({
+      color: hexColorSchema,
+      width: z.number().min(0).max(200),
+      dash: z.enum(STROKE_DASHES),
+    })
+    .nullable(),
+  /** Corner radius of boxes, in pixels. */
+  radius: z.number().min(0).max(MAX_ARTBOARD_SIZE),
+  /** Two parallel strokes (a newspaper double rule or double border). */
+  double: z.boolean(),
 });
 
 export const layerSchema = z.discriminatedUnion('kind', [
@@ -276,6 +321,7 @@ export const layerSchema = z.discriminatedUnion('kind', [
   textRunSchema,
   imageLayerSchema,
   textFrameSchema,
+  shapeLayerSchema,
 ]);
 
 export const PARAGRAPH_ALIGNS = ['justify', 'right', 'center', 'left'] as const;
@@ -390,6 +436,10 @@ export type Margins = z.infer<typeof marginsSchema>;
 export type Columns = z.infer<typeof columnsSchema>;
 export type ImageLayer = z.infer<typeof imageLayerSchema>;
 export type TextFrame = z.infer<typeof textFrameSchema>;
+export type ShapeLayer = z.infer<typeof shapeLayerSchema>;
+export type ShapeKind = (typeof SHAPE_KINDS)[number];
+export type StrokeDash = (typeof STROKE_DASHES)[number];
+export type VerticalAlign = (typeof VERTICAL_ALIGNS)[number];
 export type ParagraphStyle = z.infer<typeof paragraphStyleSchema>;
 export type ParagraphAlign = (typeof PARAGRAPH_ALIGNS)[number];
 export type Story = z.infer<typeof storySchema>;
