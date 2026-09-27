@@ -114,6 +114,8 @@ export interface StageCallbacks {
   selectUnits: (ids: string[]) => void;
   /** Double-click: open a text layer for editing, or go one level deeper. */
   drillDown: (layerId: string, unitId: string | null) => void;
+  /** Double-click on text: type into it on the canvas. */
+  editText: (layerId: string) => void;
   exitEdit: () => void;
   changeLayers: (changes: LayerChange[]) => void;
   changeParts: (layerId: string, overrides: Record<string, PartOverride>) => void;
@@ -852,8 +854,15 @@ export class ArtboardStage {
       return;
     }
     const layer = this.findLayer(info.layerId);
-    if (layer?.kind !== 'text') return;
-    this.callbacks.drillDown(info.layerId, info.unitId);
+    if (!layer || layer.locked) return;
+    if (layer.kind === 'frame') {
+      this.callbacks.editText(layer.id);
+      return;
+    }
+    if (layer.kind !== 'text') return;
+    // Letter editing (entered with Enter) goes one level deeper; otherwise type.
+    if (scene.edit?.layerId === layer.id) this.callbacks.drillDown(info.layerId, info.unitId);
+    else this.callbacks.editText(layer.id);
   }
 
   private handleModified(target: FabricObject | undefined): void {

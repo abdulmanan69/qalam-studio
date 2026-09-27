@@ -52,8 +52,10 @@ the row menu.
 4. Type, or use the **on-screen keyboard** (letters, harakat such as zabar/zer/pesh, digits).
 5. Press **Add to artboard**. The text is sized to fit and centered.
 
-Change the text later in the **Text** panel on the right. Adjustments you made to letters that you
-did not change (moved dots, kashida, alternate forms) are kept.
+Change the text later **right on the canvas**: **double-click** the text, type, and press **Esc**
+(or Ctrl+Enter, or click elsewhere) when you are done. You can also use the **Text** panel on
+the right. Adjustments you made to letters that you did not change (moved dots, kashida,
+alternate forms) are kept.
 
 ## 3. Move, scale and rotate
 
@@ -71,12 +73,14 @@ did not change (moved dots, kashida, alternate forms) are kept.
 Qalam Studio splits every letter into its parts: the **body**, its **dots** (nuqta) and **marks**
 (harakat, hamza, small signs). You can drill down into a text layer:
 
-| Level       | What you select                  | How to get there                              |
-| ----------- | -------------------------------- | --------------------------------------------- |
-| **Whole**   | The complete text layer          | Click the text                                |
-| **Words**   | One word                         | _Letters & dots_ panel → Words                |
-| **Letters** | One letter (with its dots)       | **Double-click** the text, or press **Enter** |
-| **Parts**   | One body, dot or mark on its own | Double-click again, or choose _Parts_         |
+| Level       | What you select                  | How to get there                         |
+| ----------- | -------------------------------- | ---------------------------------------- |
+| **Whole**   | The complete text layer          | Click the text                           |
+| **Words**   | One word                         | _Letters & dots_ panel → Words           |
+| **Letters** | One letter (with its dots)       | Select the text and press **Enter**      |
+| **Parts**   | One body, dot or mark on its own | Double-click a letter, or choose _Parts_ |
+
+(Double-clicking a text that is not in letter editing opens it for typing, see section 2.)
 
 Press **Esc** to go back up one level. At every level you can **drag, scale and rotate** what you
 selected; **Shift-click** or drag a selection rectangle to select several.
@@ -242,7 +246,7 @@ a text layer and open the **Letter styles** card:
 1. **Letter**: pick the letter to style (all letters of the text are listed; if you selected a
    letter on the canvas it is picked for you).
 2. **Apply to**: _Whole text_ changes every occurrence; _Selected word_ changes only the word you
-   selected on the canvas (double-click the text, then click the word or a letter in it).
+   selected on the canvas (select the text, press Enter, then click the word or a letter in it).
 3. **Style**: click one of the twenty styles — _Wide, Wider, Widest, Narrow, Tall, Taller, Short,
    Large, Small, Lean right, Lean left, Swash, Flat, Sweep, Raised, Lowered_ and four kashida
    lengths — or one of the font's own alternate forms, shown after them. Every button previews the
@@ -339,7 +343,8 @@ page (or **Use on all pages**). Type **{page}** in any text to show the page num
 
 1. Choose the **Text frame** tool (`F`) and drag a box on the page. Drawn across several columns
    of the grid, the frame snaps to them and takes the same number of columns.
-2. In the **Story** card, paste or type the article — **one paragraph per line** — or **Import
+2. **Double-click the frame** and type the article straight onto the page (Esc when done), or,
+   in the **Story** card, paste or type the article — **one paragraph per line** — or **Import
    text file** (UTF-8 `.txt`, e.g. straight from the newsroom system).
 3. The text flows down the first column, then the next (right to left), and is **justified** to
    the column width.

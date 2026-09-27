@@ -7,6 +7,7 @@ import type {
   Margins,
   ParagraphStyle,
   Project,
+  Story,
   StoryParagraph,
   TextFrame,
 } from '@/features/projects/schema';
@@ -37,6 +38,18 @@ export function newStory(draft: Draft<Project>, paragraphs?: StoryParagraph[], n
     paragraphs: paragraphs ?? [{ text: PLACEHOLDER_TEXT, styleId: body?.id ?? 'body' }],
   });
   return id;
+}
+
+/**
+ * Replace a story's text: one paragraph per line. Each paragraph keeps the
+ * style of the paragraph at the same position; new lines inherit it.
+ */
+export function setStoryText(story: Draft<Story> | Story, text: string): void {
+  const previous = story.paragraphs;
+  story.paragraphs = text.split('\n').map((line, i) => ({
+    text: line.slice(0, 20_000),
+    styleId: previous[i]?.styleId ?? previous[i - 1]?.styleId ?? previous.at(-1)?.styleId ?? 'body',
+  }));
 }
 
 export function makeFrame(

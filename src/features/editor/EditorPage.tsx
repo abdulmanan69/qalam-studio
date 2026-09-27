@@ -375,6 +375,9 @@ function EditorWorkspace({ project }: { project: Project }) {
           state.setEditLevel(DEEPER[state.editLevel]);
         }
       },
+      editText: (layerId) => {
+        useEditorStore.getState().setTextEdit(layerId);
+      },
       exitEdit: () => {
         useEditorStore.getState().editLayer(null);
       },

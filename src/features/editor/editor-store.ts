@@ -67,6 +67,8 @@ interface EditorState {
   exportDialogOpen: boolean;
   historyDialogOpen: boolean;
   setupDialogOpen: boolean;
+  /** Text layer or text frame whose text is being typed directly on the canvas. */
+  textEditId: string | null;
   setTool: (tool: EditorTool) => void;
   setZoom: (zoom: number) => void;
   setMaxZoom: (maxZoom: number) => void;
@@ -86,6 +88,8 @@ interface EditorState {
   setExportDialogOpen: (open: boolean) => void;
   setHistoryDialogOpen: (open: boolean) => void;
   setSetupDialogOpen: (open: boolean) => void;
+  /** Type into a text layer or frame on the canvas (`null` closes the editor). */
+  setTextEdit: (layerId: string | null) => void;
   reset: () => void;
 }
 
@@ -108,6 +112,7 @@ const initialState = {
   editLevel: 'object' as EditLevel,
   selectedUnits: [] as string[],
   kashidaPreview: null,
+  textEditId: null as string | null,
   saveState: 'saved' as SaveState,
   textDialogOpen: false,
   exportDialogOpen: false,
@@ -174,6 +179,7 @@ export const useEditorStore = create<EditorState>()(
                 editLayerId: null,
                 editLevel: 'object',
                 selectedUnits: [],
+                textEditId: null,
                 fitRequest: s.fitRequest + 1,
               },
         );
@@ -183,14 +189,26 @@ export const useEditorStore = create<EditorState>()(
         set((s) =>
           sameIds(s.selectedIds, next) && s.editLayerId === null
             ? s
-            : { selectedIds: next, editLayerId: null, editLevel: 'object', selectedUnits: [] },
+            : {
+                selectedIds: next,
+                editLayerId: null,
+                editLevel: 'object',
+                selectedUnits: [],
+                textEditId: s.textEditId !== null && next.includes(s.textEditId) ? s.textEditId : null,
+              },
         );
       },
       editLayer: (layerId, level = 'letter') => {
         set(
           layerId === null
             ? { editLayerId: null, editLevel: 'object', selectedUnits: [] }
-            : { editLayerId: layerId, editLevel: level, selectedIds: [layerId], selectedUnits: [] },
+            : {
+                editLayerId: layerId,
+                editLevel: level,
+                selectedIds: [layerId],
+                selectedUnits: [],
+                textEditId: null,
+              },
         );
       },
       setEditLevel: (level) => {
@@ -208,6 +226,19 @@ export const useEditorStore = create<EditorState>()(
       },
       selectUnits: (ids) => {
         set((s) => (sameIds(s.selectedUnits, ids) ? s : { selectedUnits: [...ids] }));
+      },
+      setTextEdit: (textEditId) => {
+        set(
+          textEditId === null
+            ? { textEditId: null }
+            : {
+                textEditId,
+                selectedIds: [textEditId],
+                editLayerId: null,
+                editLevel: 'object',
+                selectedUnits: [],
+              },
+        );
       },
       setLockMarks: (lockMarks) => {
         set({ lockMarks, selectedUnits: [] });

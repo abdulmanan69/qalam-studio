@@ -586,6 +586,10 @@
       "shadow_offsetX": "جابه‌جایی X",
       "shadow_offsetY": "جابه‌جایی Y",
       "shadow_opacity": "شدت"
+    },
+    "inlineEdit": {
+      "label": "ویرایش متن",
+      "hint": "اینجا بنویسید. برای پایان Esc یا Ctrl+Enter؛ در کادر متن هر سطر یک پاراگراف است."
     }
   },
   "templates": {

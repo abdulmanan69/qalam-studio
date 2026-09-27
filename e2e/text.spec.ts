@@ -53,6 +53,25 @@ test('types Urdu text and draws the shaped glyphs on the canvas', async ({ page 
   await expect(page.getByRole('combobox', { name: 'Font' })).toContainText('Noto Nastaliq Urdu');
 });
 
+test('double-clicking text on the canvas lets you type into it', async ({ page }) => {
+  await createDesign(page, 'Inline edit');
+  await addText(page, 'خوش آمدید');
+  await expect.poll(() => inkPixels(page)).toBeGreaterThan(1000);
+
+  const canvas = page.locator('[data-canvas-root] canvas').last();
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('Canvas not visible');
+  await page.mouse.dblclick(box.x + box.width / 2, box.y + box.height / 2);
+  const editor = page.getByRole('textbox', { name: 'Edit text' });
+  await expect(editor).toBeFocused();
+  await editor.fill('سلام');
+  await editor.press('Escape');
+  await expect(editor).toBeHidden();
+  await expect(
+    page.getByRole('list', { name: 'Layers' }).getByRole('button', { name: 'سلام', exact: true }),
+  ).toBeVisible();
+});
+
 test('changing the font re-shapes the text', async ({ page }) => {
   await createDesign(page, 'Font switch');
   await addText(page, 'بسم اللہ');

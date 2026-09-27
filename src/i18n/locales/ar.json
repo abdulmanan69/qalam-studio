@@ -610,6 +610,10 @@
       "shadow_offsetX": "الإزاحة X",
       "shadow_offsetY": "الإزاحة Y",
       "shadow_opacity": "الشدة"
+    },
+    "inlineEdit": {
+      "label": "تحرير النص",
+      "hint": "اكتب هنا. Esc أو Ctrl+Enter للإنهاء؛ في إطارات النص كل سطر فقرة."
     }
   },
   "templates": {

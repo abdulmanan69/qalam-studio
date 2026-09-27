@@ -52,6 +52,9 @@ Phases 3–7 — letter-level editing, design tools, templates, languages, offli
   position and "ignore text wrap"; Urdu daily front page and opinion page templates. Project
   schema v5.
 
+- Type directly on the canvas: double-click a text layer or a text frame to edit its text in
+  place (Esc or Ctrl+Enter to finish). Letter editing is entered with Enter.
+
 ### Fixed
 
 - Numbers and Latin words inside right-to-left text were drawn backwards (۱۲ as ۲۱).

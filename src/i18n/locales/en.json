@@ -586,6 +586,10 @@
       "shadow_offsetX": "Offset X",
       "shadow_offsetY": "Offset Y",
       "shadow_opacity": "Strength"
+    },
+    "inlineEdit": {
+      "label": "Edit text",
+      "hint": "Type here. Esc or Ctrl+Enter to finish; one paragraph per line in text frames."
     }
   },
   "templates": {

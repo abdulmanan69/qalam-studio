@@ -586,6 +586,10 @@
       "shadow_offsetX": "افقی فاصلہ X",
       "shadow_offsetY": "عمودی فاصلہ Y",
       "shadow_opacity": "شدت"
+    },
+    "inlineEdit": {
+      "label": "متن میں ترمیم",
+      "hint": "یہاں لکھیں۔ ختم کرنے کے لیے Esc یا Ctrl+Enter؛ ٹیکسٹ فریم میں ہر سطر ایک پیراگراف ہے۔"
     }
   },
   "templates": {

@@ -6,6 +6,7 @@ import { isEditableTarget } from '@/lib/hotkeys';
 import { cn } from '@/lib/utils';
 
 import { ArtboardCanvas } from './canvas/ArtboardCanvas';
+import { InlineTextEditor } from './canvas/InlineTextEditor';
 import type { StageCallbacks, StageScene } from './canvas/artboard-stage';
 import { useEditorStore } from './editor-store';
 import { Ruler } from './Ruler';
@@ -256,6 +257,7 @@ export function CanvasViewport({ scene, callbacks, onAddGuide }: CanvasViewportP
             data-testid="artboard"
           >
             <ArtboardCanvas scene={scene} zoom={zoom} callbacks={callbacks} />
+            <InlineTextEditor scene={scene} zoom={zoom} />
             {empty && (
               <p className="pointer-events-none absolute inset-0 flex items-center justify-center p-4 text-center text-xs text-black/55">
                 {t('editor.emptyArtboard')}

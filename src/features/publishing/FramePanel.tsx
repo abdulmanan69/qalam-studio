@@ -17,6 +17,7 @@ import { ColorField } from '../editor/StyleEditor';
 import type { EditorActions } from '../editor/use-editor-actions';
 
 import { storyFrames, storyWordCount } from './pages';
+import { setStoryText } from './publishing-ops';
 
 /** Paragraphs ↔ text: one paragraph per line. */
 function toText(paragraphs: readonly { text: string }[]): string {
@@ -54,15 +55,7 @@ export function FramePanel({ project, frame, flow, actions }: FramePanelProps) {
     if (!story || draft === storyText) return;
     const timer = window.setTimeout(() => {
       actions.updateStory(story.id, (s) => {
-        const lines = draft.split('\n');
-        s.paragraphs = lines.map((text, i) => ({
-          text,
-          styleId:
-            s.paragraphs[i]?.styleId ??
-            s.paragraphs[i - 1]?.styleId ??
-            s.paragraphs.at(-1)?.styleId ??
-            'body',
-        }));
+        setStoryText(s, draft);
       });
     }, 400);
     return () => {

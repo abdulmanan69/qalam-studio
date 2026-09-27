@@ -44,6 +44,7 @@ export function ArtboardCanvas({ scene, zoom, callbacks }: ArtboardCanvasProps) 
       selectLayers: forward('selectLayers'),
       selectUnits: forward('selectUnits'),
       drillDown: forward('drillDown'),
+      editText: forward('editText'),
       exitEdit: forward('exitEdit'),
       changeLayers: forward('changeLayers'),
       changeParts: forward('changeParts'),
