@@ -15,7 +15,8 @@
     "reload": "إعادة التحميل"
   },
   "shell": {
-    "skipToContent": "انتقل إلى المحتوى الرئيسي"
+    "skipToContent": "انتقل إلى المحتوى الرئيسي",
+    "developedBy": "تطوير:"
   },
   "topBar": {
     "home": "الصفحة الرئيسية لـ Qalam Studio",

@@ -15,7 +15,8 @@
     "reload": "دوبارہ لوڈ کریں"
   },
   "shell": {
-    "skipToContent": "مرکزی مواد پر جائیں"
+    "skipToContent": "مرکزی مواد پر جائیں",
+    "developedBy": "تیار کردہ:"
   },
   "topBar": {
     "home": "Qalam Studio ہوم",

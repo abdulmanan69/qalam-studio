@@ -15,7 +15,8 @@
     "reload": "بارگذاری دوباره"
   },
   "shell": {
-    "skipToContent": "رفتن به محتوای اصلی"
+    "skipToContent": "رفتن به محتوای اصلی",
+    "developedBy": "توسعه‌دهنده:"
   },
   "topBar": {
     "home": "صفحهٔ اصلی Qalam Studio",

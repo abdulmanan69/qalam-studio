@@ -15,7 +15,8 @@
     "reload": "Reload"
   },
   "shell": {
-    "skipToContent": "Skip to main content"
+    "skipToContent": "Skip to main content",
+    "developedBy": "Developed by"
   },
   "topBar": {
     "home": "Qalam Studio home",
