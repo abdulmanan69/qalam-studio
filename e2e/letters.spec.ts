@@ -206,3 +206,48 @@ test('layers can be grouped, locked and reordered from the layers panel', async 
   await page.keyboard.press('Control+z');
   await expect(layers.getByRole('button', { name: 'Lock ب' })).toBeVisible();
 });
+
+test('letter styles reshape one letter everywhere, and can be removed', async ({ page }) => {
+  await createDesignWithText(page, 'کے لیے سے');
+  const letters = page.getByRole('radiogroup', { name: 'Letter' });
+  await letters.getByRole('radio', { name: 'ے', exact: true }).click();
+  await expect(page.getByText('3 letters will change')).toBeVisible();
+  const before = await inkWidth(page);
+
+  await page.getByRole('list', { name: 'Styles' }).getByRole('button', { name: 'Widest' }).click();
+  const resetAll = page.getByRole('button', { name: 'Reset all letter adjustments' });
+  await expect(resetAll).toBeVisible();
+  await expect.poll(() => inkWidth(page)).toBeGreaterThan(before);
+
+  await page.getByRole('button', { name: 'Remove style' }).click();
+  await expect(resetAll).toBeHidden();
+});
+
+test('spacing tuner and position pad', async ({ page }) => {
+  await createDesignWithText(page, 'دل دل دل');
+  await expect.poll(() => inkWidth(page)).toBeGreaterThan(20);
+  const before = await inkWidth(page);
+  await page.getByRole('group', { name: 'Spacing presets' }).getByRole('button', { name: 'Airy' }).click();
+  await expect.poll(() => inkWidth(page)).toBeGreaterThan(before + 5);
+
+  const x = page.getByRole('textbox', { name: 'X', exact: true });
+  const startX = Number(await x.inputValue());
+  const pad = page.getByRole('group', { name: 'Move selection' });
+  await page.getByRole('radio', { name: '10 px' }).click();
+  await pad.getByRole('button', { name: 'Move right' }).click();
+  await expect.poll(async () => Number(await x.inputValue())).toBeCloseTo(startX + 10);
+});
+
+test('symbols panel inserts honorifics and ayah numbers in the current font', async ({ page }) => {
+  await createDesignWithText(page, 'محمد');
+  await page.getByRole('button', { name: 'Show symbols' }).click();
+  await expect(page.getByText(/Symbols are shown in|symbols? (is|are) hidden/)).toBeVisible();
+  await page.getByRole('tab', { name: "Qur'anic marks" }).click();
+  await page.getByRole('spinbutton', { name: 'Ayah number' }).fill('12');
+  await page
+    .getByRole('button', { name: /^Insert/ })
+    .filter({ hasText: '۝' })
+    .first()
+    .click();
+  await expect(page.locator('textarea').first()).toHaveValue('محمد۝۱۲');
+});

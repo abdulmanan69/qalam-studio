@@ -92,6 +92,16 @@ export class ShapingEngine {
     return layoutText(this.getFont(fontKey), text, options);
   }
 
+  /** For each string: true if the font has a glyph for every character (whitespace ignored). */
+  coverage(fontKey: string, strings: readonly string[]): boolean[] {
+    const font = this.getFont(fontKey);
+    return strings.map((s) => {
+      const visible = s.replace(/\s+/gu, '');
+      if (!visible) return true;
+      return font.shape(visible, { language: 'ar' }).every((g) => g.glyphId !== 0);
+    });
+  }
+
   /** Alternate forms of the letter at `letterIndex` (UTF-16 index into `text`). */
   alternates(fontKey: string, text: string, letterIndex: number, options: ShapeOptions): AlternateForm[] {
     const font = this.getFont(fontKey);

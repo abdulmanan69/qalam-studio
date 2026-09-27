@@ -42,6 +42,9 @@ async function handle(request: ShapingRequest): Promise<ShapingResponse> {
   try {
     const engine = await enginePromise;
     await ensureFont(engine, request.fontKey, request.fontUrl);
+    if (request.type === 'coverage') {
+      return { id: request.id, ok: true, coverage: engine.coverage(request.fontKey, request.strings) };
+    }
     if (request.type === 'alternates') {
       const alternates = engine.alternates(
         request.fontKey,

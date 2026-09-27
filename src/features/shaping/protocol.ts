@@ -22,10 +22,17 @@ export interface AlternatesRequestMessage extends FontRequest {
   options: ShapeOptions;
 }
 
-export type ShapingRequest = LayoutRequestMessage | AlternatesRequestMessage;
+/** Main thread → worker: which strings the font can draw completely (no missing glyphs). */
+export interface CoverageRequestMessage extends FontRequest {
+  type: 'coverage';
+  strings: string[];
+}
+
+export type ShapingRequest = LayoutRequestMessage | AlternatesRequestMessage | CoverageRequestMessage;
 
 /** Worker → main thread. */
 export type ShapingResponse =
   | { id: number; ok: true; layout: TextLayout }
   | { id: number; ok: true; alternates: AlternateForm[] }
+  | { id: number; ok: true; coverage: boolean[] }
   | { id: number; ok: false; error: string };

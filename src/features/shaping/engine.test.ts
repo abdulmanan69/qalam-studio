@@ -152,3 +152,35 @@ describe('layout', () => {
     expect(engine.layout('amiri', 'سلام\n', options).lines).toHaveLength(2);
   });
 });
+
+describe('spacing with real fonts (right to left)', () => {
+  const options = { language: 'ur', fontSize: 100 } as const;
+
+  it('spaces only letters that do not connect', () => {
+    // "دل": dal never connects to the next letter; "بب" is fully connected.
+    const plain = engine.layout('nastaliq', 'دل', options).width;
+    expect(engine.layout('nastaliq', 'دل', { ...options, letterSpacing: 0.5 }).width).toBeCloseTo(plain + 50);
+    const joined = engine.layout('nastaliq', 'بب', options).width;
+    expect(engine.layout('nastaliq', 'بب', { ...options, letterSpacing: 0.5 }).width).toBeCloseTo(joined);
+  });
+
+  it('adds word spacing between words', () => {
+    const plain = engine.layout('amiri', 'سلام علیکم', options).width;
+    expect(engine.layout('amiri', 'سلام علیکم', { ...options, wordSpacing: 0.3 }).width).toBeCloseTo(
+      plain + 30,
+    );
+  });
+
+  it('optical spacing changes the gaps but keeps every glyph', () => {
+    const plain = engine.layout('nastaliq', 'میرا دل اداس ہے', options);
+    const tuned = engine.layout('nastaliq', 'میرا دل اداس ہے', { ...options, opticalSpacing: true });
+    expect(tuned.glyphs.map((g) => g.glyphId)).toEqual(plain.glyphs.map((g) => g.glyphId));
+    expect(tuned.width).not.toBeCloseTo(plain.width);
+  });
+});
+
+describe('coverage', () => {
+  it('reports strings with missing glyphs', () => {
+    expect(engine.coverage('amiri', ['بسم', 'ﷺ', '۝', 'A😀'])).toEqual([true, true, true, false]);
+  });
+});

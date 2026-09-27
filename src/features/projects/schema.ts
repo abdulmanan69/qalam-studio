@@ -173,6 +173,17 @@ export const textRunSchema = z.object({
   kashida: z.record(z.string().regex(/^\d+$/), z.number().min(0).max(MAX_KASHIDA_EM)),
   /** Alternate forms chosen per letter. */
   features: z.array(rangeFeatureSchema).max(500),
+  /** Spacing tuner (optional; absent = the font's natural spacing). */
+  spacing: z
+    .object({
+      /** Extra em between letters that do not connect. */
+      letter: z.number().min(-1).max(3),
+      /** Extra em between words. */
+      word: z.number().min(-1).max(5),
+      /** Automatic, even gaps (optical kerning). */
+      optical: z.boolean(),
+    })
+    .optional(),
 });
 
 export const layerSchema = z.discriminatedUnion('kind', [svgAssetSchema, textRunSchema]);

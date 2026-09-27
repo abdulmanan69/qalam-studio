@@ -18,7 +18,8 @@ export const SHAPING_UNAVAILABLE = 'unavailable';
 export type LayoutSource = Pick<
   TextRun,
   'fontId' | 'text' | 'language' | 'fontSize' | 'lineHeight' | 'align' | 'kashida' | 'features'
->;
+> &
+  Partial<Pick<TextRun, 'spacing'>>;
 
 /** The shaping request for a text run (font resolved through the registry). */
 export function layoutRequestFor(
@@ -42,6 +43,10 @@ export function layoutRequestFor(
       rangeFeatures: run.features,
       kashida: Object.fromEntries(Object.entries(kashida).filter(([, v]) => v > 0)),
       kashidaMode: font.kashida,
+      // Only set when used, so unspaced text keeps its cache key.
+      ...(run.spacing?.letter ? { letterSpacing: run.spacing.letter } : {}),
+      ...(run.spacing?.word ? { wordSpacing: run.spacing.word } : {}),
+      ...(run.spacing?.optical ? { opticalSpacing: true } : {}),
     },
   };
 }

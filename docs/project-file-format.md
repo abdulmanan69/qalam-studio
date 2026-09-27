@@ -157,6 +157,7 @@ A `.qalam` file is a UTF-8 JSON document. MIME type: `application/vnd.qalam+json
 | `parts`         | Per-part adjustments keyed by `cluster:glyphId:occurrence:index` (see below).                                                                        |
 | `kashida`       | Extra length in em (0–20) per letter, keyed by the letter's UTF-16 index in `text`.                                                                  |
 | `features`      | Alternate forms: OpenType feature `tag` and `value` applied to the characters `[start, end)`.                                                        |
+| `spacing`       | Optional `{ letter, word, optical }`: extra em between unconnected letters (−1–3) and between words (−1–5), and automatic even spacing.              |
 
 **Part keys.** The shaping engine splits every glyph into parts (body, dots, marks). A part is
 identified by the UTF-16 index of its character (`cluster`), the glyph id, the glyph's occurrence

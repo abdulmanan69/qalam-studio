@@ -54,7 +54,10 @@ import { SHAPING_UNAVAILABLE } from './canvas/use-text-layouts';
 import { useEditorStore } from './editor-store';
 import type { AlignMode } from './layer-ops';
 import { NumberField } from './NumberField';
+import { LetterStylesPanel } from './LetterStylesPanel';
 import { PartsPanel } from './PartsPanel';
+import { PositionPad } from './PositionPad';
+import { SpacingCard } from './SpacingCard';
 import { ColorField, StyleEditor } from './StyleEditor';
 import { LanguageSelect } from './text/LanguageSelect';
 import { TextInput } from './text/TextInput';
@@ -706,6 +709,9 @@ export function PropertiesPanel({ project, artboard, layouts, errors, actions }:
         <>
           <TextProperties key={single.id} run={single} error={errors.get(single.id)} actions={actions} />
           <PartsPanel run={single} layout={layouts.get(single.id)} actions={actions} />
+          <PositionPad actions={actions} />
+          <LetterStylesPanel run={single} layout={layouts.get(single.id)} actions={actions} />
+          <SpacingCard run={single} actions={actions} />
           <Card>
             <CardHeader className="pb-1.5">
               <CardTitle>{t('editor.style.title')}</CardTitle>
@@ -723,7 +729,12 @@ export function PropertiesPanel({ project, artboard, layouts, errors, actions }:
           </Card>
         </>
       )}
-      {single?.kind === 'svg' && <AssetProperties key={single.id} asset={single} actions={actions} />}
+      {single?.kind === 'svg' && (
+        <>
+          <AssetProperties key={single.id} asset={single} actions={actions} />
+          <PositionPad actions={actions} />
+        </>
+      )}
       {selected.length > 0 && <ArrangeCard count={selected.length} actions={actions} />}
       {selected.length === 0 && (
         <>

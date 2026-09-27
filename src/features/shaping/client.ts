@@ -94,6 +94,16 @@ export class ShapingClient {
     return promise;
   }
 
+  /** Which strings the font can draw without missing glyphs. */
+  coverage(fontKey: string, fontUrl: string, strings: string[]): Promise<boolean[]> {
+    return this.send((id) => ({ id, type: 'coverage', fontKey, fontUrl, text: '', strings })).then(
+      (response) => {
+        if (!('coverage' in response)) throw new Error('Unexpected shaping response');
+        return response.coverage;
+      },
+    );
+  }
+
   /** Alternate forms the font offers for one letter (not cached: cheap and rarely repeated). */
   alternates(request: AlternatesRequest): Promise<AlternateForm[]> {
     return this.send((id) => ({ id, type: 'alternates', ...request })).then((response) => {

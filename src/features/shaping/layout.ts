@@ -1,4 +1,11 @@
-import { endOfLetter, extendableLetters, letterIndices, wordIndices } from './joining';
+import {
+  endOfLetter,
+  extendableLetters,
+  joinsNext,
+  joinsPrevious,
+  letterIndices,
+  wordIndices,
+} from './joining';
 import {
   boxOfCommands,
   classifyShapes,
@@ -232,7 +239,143 @@ function buildLine(ctx: LayoutContext, slice: LineSlice, baseline: number): Draf
     width += splits.reduce((sum, s) => sum + s.extraPx, 0);
   }
 
+  // 5. Spacing between unconnected letters and between words.
+  width += applySpacing(ctx, glyphs);
+
   return { slice, width, baseline, glyphs };
+}
+
+/** Optical spacing targets and limits, in em. */
+const OPTICAL = {
+  letterGap: 0.08,
+  wordGap: 0.28,
+  letterMin: -0.2,
+  letterMax: 0.12,
+  wordMin: -0.3,
+  wordMax: 0.2,
+};
+
+function inkRange(glyphs: readonly DraftGlyph[]): { left: number; right: number } | null {
+  let left = Infinity;
+  let right = -Infinity;
+  for (const glyph of glyphs) {
+    for (const part of glyph.parts) {
+      if (part.kind !== 'body' || part.commands.length === 0) continue;
+      const box = boxOfCommands(part.commands);
+      left = Math.min(left, box.x);
+      right = Math.max(right, box.x + box.width);
+    }
+  }
+  return Number.isFinite(left) ? { left, right } : null;
+}
+
+/**
+ * Add letter spacing (between letters that do not connect, within a word),
+ * word spacing and — optionally — optical spacing, which evens out the ink
+ * gaps between unconnected letter groups and between words. Connected
+ * letters are never pulled apart. Returns the added line width.
+ */
+function applySpacing(ctx: LayoutContext, glyphs: DraftGlyph[]): number {
+  const { options, text } = ctx;
+  const em = options.fontSize;
+  const letterSpacing = (options.letterSpacing ?? 0) * em;
+  const wordSpacing = (options.wordSpacing ?? 0) * em;
+  const optical = options.opticalSpacing ?? false;
+  if (letterSpacing === 0 && wordSpacing === 0 && !optical) return 0;
+  const rtl = (options.direction ?? 'rtl') === 'rtl';
+
+  // Base glyphs in visual (left-to-right) order; marks follow their letter.
+  const bases = glyphs.filter((g) => g.kind !== 'mark');
+  const isSpace = (g: DraftGlyph) => !g.isKashida && /\s/u.test(text.charAt(g.cluster));
+
+  type Boundary = 'joined' | 'letter' | 'word';
+  const boundaries: Boundary[] = [];
+  for (let i = 0; i + 1 < bases.length; i++) {
+    const a = bases[i] as DraftGlyph;
+    const b = bases[i + 1] as DraftGlyph;
+    if (isSpace(a) || isSpace(b)) {
+      boundaries.push('word');
+      continue;
+    }
+    if (a.word !== b.word) {
+      boundaries.push('word');
+      continue;
+    }
+    const [first, second] = rtl ? [b, a] : [a, b];
+    const joined =
+      a.letter === b.letter ||
+      a.isKashida ||
+      b.isKashida ||
+      (joinsNext(text.charCodeAt(first.letter)) && joinsPrevious(text.charCodeAt(second.letter)));
+    boundaries.push(joined ? 'joined' : 'letter');
+  }
+
+  // Connected groups of non-space glyphs, to measure ink gaps between them.
+  const groupOf: number[] = [];
+  let group = 0;
+  bases.forEach((g, i) => {
+    if (i > 0 && boundaries[i - 1] !== 'joined') group++;
+    groupOf.push(isSpace(g) ? -1 : group);
+  });
+  const groupInk = new Map<number, { left: number; right: number } | null>();
+  const inkOf = (id: number) => {
+    if (!groupInk.has(id)) groupInk.set(id, inkRange(bases.filter((_, i) => groupOf[i] === id)));
+    return groupInk.get(id) ?? null;
+  };
+
+  // Extra space at each boundary between bases i and i + 1.
+  const deltas = boundaries.map((kind, i) => {
+    if (kind === 'joined') return 0;
+    const b = bases[i + 1] as DraftGlyph;
+    if (kind === 'word') {
+      // Count each word gap once: at the boundary on the far side of the space(s).
+      if (isSpace(b)) return 0;
+      let delta = wordSpacing;
+      if (optical) {
+        let j = i;
+        while (j >= 0 && isSpace(bases[j] as DraftGlyph)) j--;
+        const left = j >= 0 ? inkOf(groupOf[j] ?? -1) : null;
+        const right = inkOf(groupOf[i + 1] ?? -1);
+        if (left && right) {
+          const gap = right.left - left.right;
+          delta += clamp(OPTICAL.wordGap * em - gap, OPTICAL.wordMin * em, OPTICAL.wordMax * em);
+        }
+      }
+      return delta;
+    }
+    let delta = letterSpacing;
+    if (optical) {
+      const left = inkOf(groupOf[i] ?? -1);
+      const right = inkOf(groupOf[i + 1] ?? -1);
+      if (left && right) {
+        const gap = right.left - left.right;
+        delta += clamp(OPTICAL.letterGap * em - gap, OPTICAL.letterMin * em, OPTICAL.letterMax * em);
+      }
+    }
+    return delta;
+  });
+
+  // Cumulative shift per base glyph; marks move with their letter's base.
+  const shiftOfBase = new Map<DraftGlyph, number>();
+  let running = 0;
+  bases.forEach((g, i) => {
+    if (i > 0) running += deltas[i - 1] ?? 0;
+    shiftOfBase.set(g, running);
+  });
+  const shiftOfLetter = new Map<number, number>();
+  for (const [g, shift] of shiftOfBase) if (!shiftOfLetter.has(g.letter)) shiftOfLetter.set(g.letter, shift);
+
+  for (const glyph of glyphs) {
+    const shift = shiftOfBase.get(glyph) ?? shiftOfLetter.get(glyph.letter) ?? 0;
+    if (shift === 0) continue;
+    glyph.x += shift;
+    for (const part of glyph.parts) part.commands = transformCommands(part.commands, 1, 1, shift, 0);
+  }
+  return running;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
 }
 
 /**

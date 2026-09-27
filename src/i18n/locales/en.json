@@ -642,5 +642,83 @@
       "patternDots": "Dots",
       "patternWaves": "Waves"
     }
+  },
+  "symbols": {
+    "show": "Show symbols",
+    "hide": "Hide symbols",
+    "insert": "Insert {{symbol}}",
+    "ayahNumber": "Ayah number",
+    "insertAyah": "Insert",
+    "hint": "Symbols are shown in {{font}}.",
+    "hidden_one": "{{count}} symbol is hidden: {{font}} does not include it.",
+    "hidden_other": "{{count}} symbols are hidden: {{font}} does not include them.",
+    "categories": {
+      "honorifics": "Honorifics",
+      "quranic": "Qur'anic marks",
+      "surahs": "Surah names",
+      "paras": "Para names",
+      "punctuation": "Punctuation"
+    }
+  },
+  "letterStyles": {
+    "title": "Letter styles",
+    "letter": "Letter",
+    "scope": "Apply to",
+    "scope_all": "Whole text",
+    "scope_word": "Selected word",
+    "count_one": "{{count}} letter will change",
+    "count_other": "{{count}} letters will change",
+    "selectWord": "select a word or letter on the canvas first",
+    "styles": "Styles",
+    "alternate": "Font form {{tag}} {{value}}",
+    "clear": "Remove style",
+    "names": {
+      "wide": "Wide",
+      "wider": "Wider",
+      "widest": "Widest",
+      "narrow": "Narrow",
+      "tall": "Tall",
+      "taller": "Taller",
+      "short": "Short",
+      "large": "Large",
+      "small": "Small",
+      "leanRight": "Lean right",
+      "leanLeft": "Lean left",
+      "swash": "Swash",
+      "flat": "Flat",
+      "sweep": "Sweep",
+      "raised": "Raised",
+      "lowered": "Lowered",
+      "kashidaShort": "Kashida ½",
+      "kashidaMedium": "Kashida 1",
+      "kashidaLong": "Kashida 2",
+      "kashidaExtra": "Kashida 3"
+    }
+  },
+  "position": {
+    "title": "Position",
+    "pad": "Move selection",
+    "up": "Move up",
+    "down": "Move down",
+    "left": "Move left",
+    "right": "Move right",
+    "step": "Step",
+    "withMarks": "Move dots and marks with their letter",
+    "only_dot": "Dots only",
+    "only_mark": "Marks only",
+    "only_body": "Letters only",
+    "hint": "Arrow keys move by 1 px, Shift + arrows by 10 px, Alt + arrows by 0.25 px. Select a word, letter, dot or mark first (double-click the text)."
+  },
+  "spacing": {
+    "title": "Spacing",
+    "presets": "Spacing presets",
+    "preset_tight": "Tight",
+    "preset_natural": "Balanced",
+    "preset_airy": "Airy",
+    "optical": "Automatic spacing (even gaps)",
+    "letter": "Letter spacing",
+    "word": "Word spacing",
+    "hint": "Adds space between letters that do not connect and between words. Connected letters always stay joined. Automatic spacing evens out uneven gaps, as in hand-set Nastaliq.",
+    "reset": "Reset spacing"
   }
 }

@@ -34,6 +34,15 @@ Phases 3–7 — letter-level editing, design tools, templates, languages, offli
 - Storybook, end-to-end tests for letter editing, kashida, layers and export, axe accessibility
   checks, locale consistency test.
 - [User guide](docs/user-guide.md), linked from the Help menu.
+- Letter styles: 20 calligraphic shape and kashida styles and the font's alternate forms for one
+  letter across a text or within a selected word, with live previews; widening grows away from
+  the letter's connection.
+- Position adjuster: arrow pad with ¼/1/5/10 px steps, Alt + arrows for ¼ px, and "dots only",
+  "marks only", "letters only" selection.
+- Symbols panel: honorifics, Qur'anic marks, ayah numbers, surah and para names and punctuation,
+  shown in the current font with unsupported symbols hidden (worker `coverage` request).
+- Spacing tuner: letter spacing, word spacing and automatic optical spacing in the layout engine
+  (optional `spacing` on text layers).
 
 ### Changed
 

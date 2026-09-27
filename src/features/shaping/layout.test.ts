@@ -88,3 +88,41 @@ describe('layoutText', () => {
     expect(long.width).toBeCloseTo(plain.width + 20);
   });
 });
+
+describe('spacing', () => {
+  // The fake font lays glyphs out in logical order, i.e. left to right.
+  const base = { language: 'ar', fontSize: 10, direction: 'ltr' } as const;
+
+  it('adds letter spacing only between letters that do not connect', () => {
+    // "ا" never connects to the next letter; "بب" is one connected group.
+    const plain = layoutText(fakeFont, 'ابب', base);
+    const spaced = layoutText(fakeFont, 'ابب', { ...base, letterSpacing: 1 });
+    expect(spaced.width).toBeCloseTo(plain.width + 10);
+    expect(layoutText(fakeFont, 'بب', { ...base, letterSpacing: 1 }).width).toBeCloseTo(
+      layoutText(fakeFont, 'بب', base).width,
+    );
+  });
+
+  it('adds word spacing once per gap between words', () => {
+    const plain = layoutText(fakeFont, 'ب ب ب', base);
+    const spaced = layoutText(fakeFont, 'ب ب ب', { ...base, wordSpacing: 0.5 });
+    expect(spaced.width).toBeCloseTo(plain.width + 10);
+  });
+
+  it('moves glyphs apart in visual order, keeping parts with their glyph', () => {
+    const spaced = layoutText(fakeFont, 'اب', { ...base, letterSpacing: 1 });
+    const [left, right] = spaced.glyphs;
+    expect(left?.cluster).toBe(0);
+    expect((right?.x ?? 0) - (left?.x ?? 0)).toBeCloseTo(15);
+    expect(right?.parts[0]?.box.x).toBeCloseTo(right?.x ?? 0);
+  });
+
+  it('optical spacing evens out gaps without joining separate letters', () => {
+    const optical = layoutText(fakeFont, 'اا', { ...base, opticalSpacing: true });
+    const [left, right] = optical.glyphs;
+    const gap =
+      (right?.parts[0]?.box.x ?? 0) - ((left?.parts[0]?.box.x ?? 0) + (left?.parts[0]?.box.width ?? 0));
+    // Natural gap 4 px; the target is 0.08 em, but a gap shrinks by at most 0.2 em (2 px).
+    expect(gap).toBeCloseTo(2);
+  });
+});

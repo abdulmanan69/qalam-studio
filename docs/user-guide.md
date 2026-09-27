@@ -19,7 +19,11 @@ file. Everything happens in your browser; your work is saved on your own device.
 - [14. Work offline and in your language](#14-work-offline-and-in-your-language)
 - [15. Keyboard shortcuts](#15-keyboard-shortcuts)
 - [16. Tips for good calligraphy](#16-tips-for-good-calligraphy)
-- [17. Troubleshooting](#17-troubleshooting)
+- [17. Letter styles](#17-letter-styles)
+- [18. Position adjuster](#18-position-adjuster)
+- [19. Symbols panel](#19-symbols-panel)
+- [20. Spacing tuner](#20-spacing-tuner)
+- [21. Troubleshooting](#21-troubleshooting)
 
 ---
 
@@ -228,7 +232,69 @@ On macOS use ⌘ instead of Ctrl.
   you work on the text.
 - **Save named versions** before experimenting.
 
-## 17. Troubleshooting
+## 17. Letter styles
+
+Give one letter a calligraphic shape — everywhere in the text at once, or only in one word. Select
+a text layer and open the **Letter styles** card:
+
+1. **Letter**: pick the letter to style (all letters of the text are listed; if you selected a
+   letter on the canvas it is picked for you).
+2. **Apply to**: _Whole text_ changes every occurrence; _Selected word_ changes only the word you
+   selected on the canvas (double-click the text, then click the word or a letter in it).
+3. **Style**: click one of the twenty styles — _Wide, Wider, Widest, Narrow, Tall, Taller, Short,
+   Large, Small, Lean right, Lean left, Swash, Flat, Sweep, Raised, Lowered_ and four kashida
+   lengths — or one of the font's own alternate forms, shown after them. Every button previews the
+   result on your letter.
+
+Widening grows the letter away from its connection, so joined letters stay joined and tails such
+as ے sweep out to the left. Styling a letter again replaces its previous style; **Remove style**
+restores the letters. Everything can be fine-tuned afterwards at the Parts level and undone with
+`Ctrl+Z`.
+
+## 18. Position adjuster
+
+The **Position** card moves the current selection in exact steps — a whole text, a word, a letter,
+or single dots and marks:
+
+- Click the **arrows**, choosing a **step** of ¼, 1, 5 or 10 px. The keyboard works too: arrows
+  move 1 px, **Shift + arrows** 10 px and **Alt + arrows** ¼ px.
+- **Move dots and marks with their letter** decides whether a letter or word moves with its
+  nuqta and aerab, or without them.
+- **Dots only / Marks only / Letters only** narrow a selected word or letter to just its dots,
+  its marks or its letter bodies, so you can move, for example, all dots of a word together.
+
+## 19. Symbols panel
+
+In the **Text** card (and in _Add text_), click **Show symbols** to insert symbols that are hard to
+type:
+
+- **Honorifics**: ﷺ, ﷻ, the small honorific signs placed over a name, and ready phrases such as
+  صلی اللہ علیہ وسلم، علیہ السلام، رضی اللہ عنہ، رحمۃ اللہ علیہ.
+- **Qur'anic marks**: end-of-ayah sign ۝ with an **ayah number** (type the number, click
+  _Insert_), rub el hizb ۞, sajdah ۩, waqf (pause) signs, ruku sign and ornate brackets ﴾ ﴿.
+- **Surah names** (all 114) and **Para names** (all 30), ready to use as headings.
+- **Punctuation**: ۔ ، ؛ ؟ ٪ ؎ and more.
+
+Symbols are shown in the font of your text, and symbols that font does not contain are hidden
+(the panel tells you how many), so what you insert always renders. For Qur'anic work, fonts such
+as Amiri, Amiri Quran and Scheherazade New contain the most marks. Symbols are inserted at the
+text cursor, or at the end if you have not clicked into the text.
+
+## 20. Spacing tuner
+
+The **Spacing** card adjusts the space between letters and words of a text layer:
+
+- **Automatic spacing (even gaps)** measures the gaps between letter groups that do not connect,
+  and between words, and evens them out — the uneven spacing typical of Nastaliq becomes calm and
+  regular. Connected letters are never pulled apart.
+- **Letter spacing** adds (or, when negative, removes) space between letters that do not connect.
+- **Word spacing** changes the space between words.
+- Presets: **Tight**, **Balanced** and **Airy**. **Reset spacing** returns to the font's natural
+  spacing.
+
+Spacing works together with kashida, letter styles and moved dots.
+
+## 21. Troubleshooting
 
 | Problem                              | Solution                                                                               |
 | ------------------------------------ | -------------------------------------------------------------------------------------- |

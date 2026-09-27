@@ -76,6 +76,16 @@ export interface LayoutOptions extends ShapeOptions {
   kashida?: Readonly<Record<string, number>>;
   /** Default "tatweel" (falls back to stretching where tatweel cannot join). */
   kashidaMode?: KashidaMode;
+  /** Extra space (em) between letters that do not connect, within a word. May be negative. */
+  letterSpacing?: number;
+  /** Extra space (em) between words. May be negative. */
+  wordSpacing?: number;
+  /**
+   * Even out the ink gaps between unconnected letter groups and between words
+   * (automatic kerning for Nastaliq and other scripts). Connected letters are
+   * never pulled apart.
+   */
+  opticalSpacing?: boolean;
 }
 
 /** A separately movable piece of a glyph: the letter body, a dot or a mark. */

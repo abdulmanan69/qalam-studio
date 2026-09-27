@@ -28,6 +28,13 @@ import { copyLayers, readClipboardLayers } from './clipboard';
 import { applyToDocument, redo, undo, useDocumentStore } from './document-store';
 import { useEditorStore } from './editor-store';
 import {
+  applyAlternateStyle,
+  applyLetterStyle,
+  clearLetterStyle,
+  letterOccurrences,
+  type LetterStyle,
+} from './letter-styles';
+import {
   alignLayers,
   applyLayerChanges,
   cloneLayers,
@@ -91,6 +98,18 @@ export interface EditorActions {
   placeSvgFile: () => Promise<void>;
   placeSvgMarkup: (svg: string, name: string, options?: { cover?: boolean; bottom?: boolean }) => void;
   placeOrnament: (id: string, color: string, name: string) => void;
+  /** Narrow the selected units to their dots, marks or bodies (part level). */
+  selectPartsOfKind: (kind: PartKindName) => void;
+  /**
+   * Letter styles: give every `letter` of a text layer (or only those in
+   * `word`) a style, one of the font's alternate forms, or none (`null`).
+   */
+  styleLetters: (
+    layerId: string,
+    letter: string,
+    word: number | null,
+    style: LetterStyle | Pick<AlternateForm, 'tag' | 'value'> | null,
+  ) => void;
 }
 
 interface Context {
@@ -535,6 +554,27 @@ export function useEditorActions({ artboard, layouts }: Context): EditorActions 
           },
         );
         editor().selectUnits(parts.parts.map((p) => `p:${p.key}`));
+      },
+      selectPartsOfKind: (kind) => {
+        const parts = selectedParts(layouts);
+        if (!parts || parts.parts.length === 0) return;
+        const wanted = parts.parts.filter((p) => p.kind === kind);
+        if (wanted.length === 0) return;
+        const state = editor();
+        state.editLayer(parts.run.id, 'part');
+        state.selectUnits([...new Set(wanted.map((p) => (p.link ? `g:${p.link}` : `p:${p.key}`)))]);
+      },
+      styleLetters: (layerId, letter, word, style) => {
+        const layout = layouts.get(layerId);
+        if (!layout) return;
+        applyToDocument((draft) => {
+          const run = draft.layers.find((l) => l.id === layerId);
+          if (run?.kind !== 'text') return;
+          const letters = letterOccurrences(run.text, letter, layout, word);
+          if (style === null) clearLetterStyle(run, layout, letters);
+          else if ('tag' in style) applyAlternateStyle(run, layout, letters, style);
+          else applyLetterStyle(run, layout, letters, style);
+        });
       },
       addArtboard: () => {
         const project = currentProject();

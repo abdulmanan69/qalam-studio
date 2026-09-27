@@ -38,6 +38,13 @@ All seven phases of the [roadmap](docs/roadmap.md) are complete.
   Ruqaa; drag tool (`K`) and slider
 - ✅ **Alternate letter forms** from the font (`salt`, `swsh`, `ssNN`, `cvNN`) with previews
 - ✅ **Baseline guides** with baseline snapping for stacked compositions
+- ✅ **Letter styles**: twenty calligraphic shapes (wide, swash, lean, raised, kashida…) plus
+  the font's alternates, for one letter across the whole text or only in a selected word
+- ✅ **Position adjuster**: arrow pad and keys (¼, 1, 5, 10 px) for words, letters, dots and
+  marks — with or without their dots and marks
+- ✅ **Symbols panel**: honorifics (ﷺ …), Qur'anic marks with ayah numbers, all surah and para
+  names — drawn in the current font, missing symbols hidden
+- ✅ **Spacing tuner**: letter and word spacing and automatic even spacing for Nastaliq
 
 **Design tools (phase 5)**
 

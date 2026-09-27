@@ -1,4 +1,4 @@
-import { Keyboard } from 'lucide-react';
+import { Keyboard, Sparkles } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -9,6 +9,7 @@ import { MAX_TEXT_LENGTH, type TextLanguage } from '@/features/projects/schema';
 import { cn } from '@/lib/utils';
 
 import { OnScreenKeyboard } from './OnScreenKeyboard';
+import { SymbolsPanel } from './SymbolsPanel';
 import { deleteBackward, insertText, type TextEdit } from './text-editing';
 
 interface TextInputProps {
@@ -47,6 +48,8 @@ export function TextInput({
   const keyboardId = useId();
   const ref = useRef<HTMLTextAreaElement>(null);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [symbolsOpen, setSymbolsOpen] = useState(false);
+  const symbolsId = useId();
   const font = resolveFont(fontId);
 
   useEffect(() => {
@@ -64,9 +67,12 @@ export function TextInput({
     });
   };
 
+  // Until the user places the caret, insert at the end of the text.
+  const caretPlaced = useRef(false);
   const selection = (): [number, number] => {
     const element = ref.current;
-    return element ? [element.selectionStart, element.selectionEnd] : [value.length, value.length];
+    if (!element || !caretPlaced.current) return [value.length, value.length];
+    return [element.selectionStart, element.selectionEnd];
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -96,6 +102,9 @@ export function TextInput({
           onValueChange(event.target.value);
         }}
         onKeyDown={onKeyDown}
+        onSelect={() => {
+          caretPlaced.current = true;
+        }}
         style={{ fontFamily: previewFontStack(font) }}
         className={cn(
           'w-full resize-y rounded-md border border-input bg-card px-3 py-2 text-xl leading-[2.4] text-foreground shadow-card placeholder:text-muted-foreground',
@@ -103,7 +112,7 @@ export function TextInput({
           'aria-invalid:border-destructive',
         )}
       />
-      <div>
+      <div className="flex flex-wrap gap-1">
         <Button
           type="button"
           variant="ghost"
@@ -117,7 +126,31 @@ export function TextInput({
           <Keyboard aria-hidden />
           {keyboardOpen ? t('keyboard.hide') : t('keyboard.show')}
         </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          aria-expanded={symbolsOpen}
+          aria-controls={symbolsId}
+          onClick={() => {
+            setSymbolsOpen((open) => !open);
+          }}
+        >
+          <Sparkles aria-hidden />
+          {symbolsOpen ? t('symbols.hide') : t('symbols.show')}
+        </Button>
       </div>
+      {symbolsOpen && (
+        <SymbolsPanel
+          id={symbolsId}
+          language={language}
+          fontId={fontId}
+          onInsert={(text) => {
+            const [start, end] = selection();
+            apply(insertText(value, start, end, text));
+          }}
+        />
+      )}
       {keyboardOpen && (
         <OnScreenKeyboard
           id={keyboardId}

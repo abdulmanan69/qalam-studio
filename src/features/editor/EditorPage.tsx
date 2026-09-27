@@ -201,6 +201,11 @@ function useEditorShortcuts(actions: EditorActions, onDownload: () => void) {
     { combo: 'shift+arrowright', handler: nudge(10, 0), enabled: idle },
     { combo: 'shift+arrowup', handler: nudge(0, -10), enabled: idle },
     { combo: 'shift+arrowdown', handler: nudge(0, 10), enabled: idle },
+    // Fine positioning of dots and marks.
+    { combo: 'alt+arrowleft', handler: nudge(-0.25, 0), enabled: idle },
+    { combo: 'alt+arrowright', handler: nudge(0.25, 0), enabled: idle },
+    { combo: 'alt+arrowup', handler: nudge(0, -0.25), enabled: idle },
+    { combo: 'alt+arrowdown', handler: nudge(0, 0.25), enabled: idle },
   ];
   useHotkeys(bindings);
 }
