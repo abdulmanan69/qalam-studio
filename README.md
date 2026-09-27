@@ -17,6 +17,16 @@ Inspired by desktop tools such as Kelk, built on the open web.
 | -------------------------------------------------- | -------------------------------------- | ------------------------------------------------- | -------------------------------------- |
 | ![Nastaliq text](docs/screenshots/editor-text.png) | ![Editor](docs/screenshots/editor.png) | ![Dark mode](docs/screenshots/dashboard-dark.png) | ![Mobile](docs/screenshots/mobile.png) |
 
+## Templates
+
+| Urdu daily — front page                                                        | Opinion page                                                                       | Magazine article                                                     |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| ![Urdu daily front page](docs/screenshots/templates/urdu-daily-front-page.png) | ![Opinion page](docs/screenshots/templates/opinion-page-with-columnist.png)        | ![Magazine article](docs/screenshots/templates/magazine-article.png) |
+| **Bismillah in Nastaliq**                                                      | **Alhamdulillah medallion**                                                        | **Iqbal couplet**                                                    |
+| ![Bismillah in Nastaliq](docs/screenshots/templates/bismillah-in-nastaliq.png) | ![Alhamdulillah medallion](docs/screenshots/templates/alhamdulillah-medallion.png) | ![Iqbal couplet](docs/screenshots/templates/iqbal-couplet-story.png) |
+
+All 15 templates: **[template gallery](docs/templates.md)**.
+
 ## Live demo
 
 Every push to `main` that passes CI is deployed to GitHub Pages at
