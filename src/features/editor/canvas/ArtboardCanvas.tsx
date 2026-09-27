@@ -51,6 +51,7 @@ export function ArtboardCanvas({ scene, zoom, callbacks }: ArtboardCanvasProps) 
       moveGuide: forward('moveGuide'),
       previewKashida: forward('previewKashida'),
       commitKashida: forward('commitKashida'),
+      createFrame: forward('createFrame'),
     });
     stageRef.current = stage;
     if (import.meta.env.DEV || import.meta.env.MODE === 'test') {

@@ -41,6 +41,10 @@ function ensureFont(engine: ShapingEngine, fontKey: string, fontUrl: string): Pr
 async function handle(request: ShapingRequest): Promise<ShapingResponse> {
   try {
     const engine = await enginePromise;
+    if (request.type === 'flow') {
+      await Promise.all(request.fonts.map((f) => ensureFont(engine, f.key, f.url)));
+      return { id: request.id, ok: true, flow: engine.flow(request.input) };
+    }
     await ensureFont(engine, request.fontKey, request.fontUrl);
     if (request.type === 'coverage') {
       return { id: request.id, ok: true, coverage: engine.coverage(request.fontKey, request.strings) };

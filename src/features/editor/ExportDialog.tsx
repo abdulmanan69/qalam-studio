@@ -15,6 +15,14 @@ import {
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { Artboard, Project, TextRun } from '@/features/projects/schema';
+import {
+  masterLayersFor,
+  pageNumber,
+  pagesOf,
+  substitutePageTokens,
+  wrapTextLayers,
+} from '@/features/publishing/pages';
+import { computeStoryFlows } from '@/features/publishing/use-story-flows';
 import type { TextLayout } from '@/features/shaping/types';
 import { downloadBlob } from '@/lib/files';
 import { cn, toSafeFileName } from '@/lib/utils';
@@ -23,28 +31,41 @@ import { layoutRequestFor, tryGetShapingClient } from './canvas/use-text-layouts
 import { useEditorStore } from './editor-store';
 import { renderPdf } from './export/pdf';
 import { fitCanvasSize, renderPng, scaleForDpi } from './export/png';
-import { renderArtboardSvg } from './export/render-svg';
+import { printMargin, renderArtboardSvg } from './export/render-svg';
 
 type Format = 'png' | 'svg' | 'pdf';
 type Resolution = '1' | '2' | '4' | 'dpi';
 
-/** Shape every text layer of the given artboards (cached layouts return at once). */
-async function layoutsFor(
-  project: Project,
-  artboardIds: ReadonlySet<string>,
-): Promise<Map<string, TextLayout>> {
+/** Shape text runs (cached layouts return at once). */
+async function shapeRuns(runs: readonly TextRun[]): Promise<Map<string, TextLayout>> {
   const client = tryGetShapingClient();
   const layouts = new Map<string, TextLayout>();
   if (!client) return layouts;
-  const runs = project.layers.filter(
-    (l): l is TextRun => l.kind === 'text' && artboardIds.has(l.artboardId) && !l.hidden,
-  );
   const results = await Promise.all(runs.map((run) => client.layout(layoutRequestFor(run))));
   runs.forEach((run, i) => {
     const layout = results[i];
     if (layout) layouts.set(run.id, layout);
   });
   return layouts;
+}
+
+/** Layouts for one page: its text, its master's text (page numbers filled in) and wrapped text. */
+function pageLayouts(project: Project, page: Artboard): Promise<Map<string, TextLayout>> {
+  const number = pageNumber(project, page.id);
+  const count = pagesOf(project).length;
+  const seen = new Set<string>();
+  const runs: TextRun[] = [];
+  const candidates = [
+    ...masterLayersFor(project, page),
+    ...project.layers.filter((l) => l.artboardId === page.id),
+    ...wrapTextLayers(project),
+  ];
+  for (const layer of candidates) {
+    if (layer.kind !== 'text' || layer.hidden || seen.has(layer.id)) continue;
+    seen.add(layer.id);
+    runs.push({ ...layer, text: substitutePageTokens(layer.text, number, count, layer.language) });
+  }
+  return shapeRuns(runs);
 }
 
 function ExportForm({
@@ -62,37 +83,51 @@ function ExportForm({
   const [resolution, setResolution] = useState<Resolution>('2');
   const [dpi, setDpi] = useState(300);
   const [transparent, setTransparent] = useState(false);
-  const [allArtboards, setAllArtboards] = useState(false);
+  const pages = pagesOf(project);
+  // Multi-page documents export every page by default.
+  const [allArtboards, setAllArtboards] = useState(pages.length > 1 && !artboard.master);
+  const [printMarks, setPrintMarks] = useState((artboard.bleed ?? 0) > 0);
   const [busy, setBusy] = useState(false);
 
   const scale = resolution === 'dpi' ? scaleForDpi(dpi) : Number(resolution);
   const outputDpi = resolution === 'dpi' ? dpi : 96 * Number(resolution);
   const size = fitCanvasSize(artboard.width, artboard.height, scale);
-  const artboards = allArtboards ? project.artboards : [artboard];
+  const artboards = allArtboards && !artboard.master ? pages : [artboard];
 
   const run = async () => {
     setBusy(true);
     try {
-      const layouts = await layoutsFor(project, new Set(artboards.map((a) => a.id)));
+      const wrapLayouts = await shapeRuns(wrapTextLayers(project));
+      const flows = (await computeStoryFlows(project, wrapLayouts)).frames;
       const base = toSafeFileName(project.name);
       const suffix = (a: Artboard) => (artboards.length > 1 ? `-${toSafeFileName(a.name)}` : '');
-      const svgOf = (a: Artboard, transparentBg: boolean) =>
-        renderArtboardSvg(a, project.layers, layouts, { transparent: transparentBg });
+      const svgOf = async (a: Artboard, transparentBg: boolean, marks: boolean) =>
+        renderArtboardSvg(a, project.layers, await pageLayouts(project, a), {
+          transparent: transparentBg,
+          flows,
+          masterLayers: masterLayersFor(project, a),
+          printMarks: marks,
+        });
       if (format === 'pdf') {
-        const blob = await renderPdf(
-          artboards.map((a) => ({ svg: svgOf(a, false), width: a.width, height: a.height })),
-          project.name,
-        );
-        downloadBlob(blob, `${base}.pdf`);
+        const rendered = [];
+        for (const a of artboards) {
+          const margin = printMarks ? printMargin(a) * 2 : 0;
+          rendered.push({
+            svg: await svgOf(a, false, printMarks),
+            width: a.width + margin,
+            height: a.height + margin,
+          });
+        }
+        downloadBlob(await renderPdf(rendered, project.name), `${base}.pdf`);
       } else {
         for (const a of artboards) {
           if (format === 'svg') {
             downloadBlob(
-              new Blob([svgOf(a, transparent)], { type: 'image/svg+xml' }),
+              new Blob([await svgOf(a, transparent, false)], { type: 'image/svg+xml' }),
               `${base}${suffix(a)}.svg`,
             );
           } else {
-            const blob = await renderPng(svgOf(a, transparent), {
+            const blob = await renderPng(await svgOf(a, transparent, false), {
               width: a.width,
               height: a.height,
               scale,
@@ -196,12 +231,17 @@ function ExportForm({
         </div>
       )}
 
-      {project.artboards.length > 1 && (
+      {pages.length > 1 && !artboard.master && (
         <div className="flex items-center justify-between gap-2">
-          <Label htmlFor={`${id}-all`}>
-            {t('editor.export.allArtboards', { count: project.artboards.length })}
-          </Label>
+          <Label htmlFor={`${id}-all`}>{t('editor.export.allArtboards', { count: pages.length })}</Label>
           <Switch id={`${id}-all`} checked={allArtboards} onCheckedChange={setAllArtboards} />
+        </div>
+      )}
+
+      {format === 'pdf' && (
+        <div className="flex items-center justify-between gap-2">
+          <Label htmlFor={`${id}-marks`}>{t('publishing.printMarks')}</Label>
+          <Switch id={`${id}-marks`} checked={printMarks} onCheckedChange={setPrintMarks} />
         </div>
       )}
 

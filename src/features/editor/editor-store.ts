@@ -10,7 +10,7 @@ import { clampZoom, MAX_ZOOM } from './zoom';
  */
 export const useEditorCommands = create<{ actions: EditorActions | null }>()(() => ({ actions: null }));
 
-export type EditorTool = 'select' | 'hand' | 'kashida' | 'baseline';
+export type EditorTool = 'select' | 'hand' | 'kashida' | 'baseline' | 'frame';
 
 /**
  * Drill-down level inside a text layer. "object" = the whole layer; the other
@@ -62,6 +62,7 @@ interface EditorState {
   textDialogOpen: boolean;
   exportDialogOpen: boolean;
   historyDialogOpen: boolean;
+  setupDialogOpen: boolean;
   setTool: (tool: EditorTool) => void;
   setZoom: (zoom: number) => void;
   setMaxZoom: (maxZoom: number) => void;
@@ -80,6 +81,7 @@ interface EditorState {
   setTextDialogOpen: (open: boolean) => void;
   setExportDialogOpen: (open: boolean) => void;
   setHistoryDialogOpen: (open: boolean) => void;
+  setSetupDialogOpen: (open: boolean) => void;
   reset: () => void;
 }
 
@@ -106,6 +108,7 @@ const initialState = {
   textDialogOpen: false,
   exportDialogOpen: false,
   historyDialogOpen: false,
+  setupDialogOpen: false,
 };
 
 const memory = new Map<string, string>();
@@ -222,6 +225,9 @@ export const useEditorStore = create<EditorState>()(
       },
       setHistoryDialogOpen: (historyDialogOpen) => {
         set({ historyDialogOpen });
+      },
+      setSetupDialogOpen: (setupDialogOpen) => {
+        set({ setupDialogOpen });
       },
       reset: () => {
         set((s) => ({ ...initialState, fitRequest: s.fitRequest + 1 }));

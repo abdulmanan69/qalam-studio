@@ -1,4 +1,4 @@
-import { PROJECT_SCHEMA_VERSION } from './schema';
+import { DEFAULT_PARAGRAPH_STYLES, PROJECT_SCHEMA_VERSION } from './schema';
 
 /**
  * Forward migrations for stored and imported project documents. Each step
@@ -64,6 +64,16 @@ const STEPS: Record<number, (doc: UnknownRecord) => UnknownRecord> = {
       groups: [],
     };
   },
+  // v3 → v4: publishing (stories, paragraph styles, page numbering).
+  3: (doc) => ({
+    ...doc,
+    schemaVersion: 4,
+    stories: Array.isArray(doc.stories) ? doc.stories : [],
+    paragraphStyles: Array.isArray(doc.paragraphStyles)
+      ? doc.paragraphStyles
+      : structuredClone(DEFAULT_PARAGRAPH_STYLES),
+    firstPageNumber: typeof doc.firstPageNumber === 'number' ? doc.firstPageNumber : 1,
+  }),
 };
 
 export function schemaVersionOf(doc: unknown): number | undefined {

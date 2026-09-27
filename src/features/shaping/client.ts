@@ -1,3 +1,4 @@
+import type { FlowInput, FlowResult } from './flow';
 import type { ShapingRequest, ShapingResponse } from './protocol';
 import type { AlternateForm, LayoutOptions, ShapeOptions, TextLayout } from './types';
 
@@ -6,6 +7,11 @@ export interface LayoutRequest {
   fontUrl: string;
   text: string;
   options: LayoutOptions;
+}
+
+export interface FlowRequest {
+  fonts: { key: string; url: string }[];
+  input: FlowInput;
 }
 
 export interface AlternatesRequest {
@@ -56,6 +62,8 @@ export class ShapingClient {
   private readonly pending = new Map<number, Pending>();
   private readonly inflight = new Map<string, Promise<TextLayout>>();
   private readonly cache = new Map<string, TextLayout>();
+  private readonly flowCache = new Map<string, FlowResult>();
+  private readonly flowInflight = new Map<string, Promise<FlowResult>>();
 
   constructor(
     private readonly createWorker: () => WorkerLike,
@@ -92,6 +100,44 @@ export class ShapingClient {
       });
     this.inflight.set(key, promise);
     return promise;
+  }
+
+  /** Flow a story through its frames. Cached: re-rendering unchanged pages is free. */
+  flow(request: FlowRequest): Promise<FlowResult> {
+    const key = stableStringify(request);
+    const cached = this.flowCache.get(key);
+    if (cached) return Promise.resolve(cached);
+    const existing = this.flowInflight.get(key);
+    if (existing) return existing;
+    const promise = this.send((id) => ({
+      id,
+      type: 'flow',
+      fontKey: '',
+      fontUrl: '',
+      text: '',
+      fonts: request.fonts,
+      input: request.input,
+    }))
+      .then((response) => {
+        if (!('flow' in response)) throw new Error('Unexpected shaping response');
+        this.flowCache.set(key, response.flow);
+        while (this.flowCache.size > 64) {
+          const oldest = this.flowCache.keys().next().value;
+          if (oldest === undefined) break;
+          this.flowCache.delete(oldest);
+        }
+        return response.flow;
+      })
+      .finally(() => {
+        this.flowInflight.delete(key);
+      });
+    this.flowInflight.set(key, promise);
+    return promise;
+  }
+
+  /** Cached flow result, if this exact request was flowed before. */
+  peekFlow(request: FlowRequest): FlowResult | undefined {
+    return this.flowCache.get(stableStringify(request));
   }
 
   /** Which strings the font can draw without missing glyphs. */

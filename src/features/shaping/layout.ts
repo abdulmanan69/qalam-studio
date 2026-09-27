@@ -178,13 +178,26 @@ function buildLine(ctx: LayoutContext, slice: LineSlice, baseline: number): Draf
     const occurrenceKey = `${original}:${sg.glyphId}`;
     const occurrence = ctx.occurrences.get(occurrenceKey) ?? 0;
     ctx.occurrences.set(occurrenceKey, occurrence + 1);
-    const shapes = font.glyphShapes(sg.glyphId);
-    const kinds = classifyShapes(shapes, {
-      glyphKind: sg.kind,
-      codePoint: isKashida ? 0x0640 : text.charCodeAt(original),
-      glyphName: font.glyphName(sg.glyphId),
-      em: ctx.unitsPerEm,
-    });
+    const glyphShapes = font.glyphShapes(sg.glyphId);
+    // Simple mode (running text): one part per glyph, no classification.
+    const shapes = options.simple
+      ? glyphShapes.length > 0
+        ? [
+            {
+              ...glyphShapes[0],
+              commands: glyphShapes.flatMap((s) => s.commands),
+            } as (typeof glyphShapes)[number],
+          ]
+        : []
+      : glyphShapes;
+    const kinds: PartKind[] = options.simple
+      ? shapes.map(() => 'body')
+      : classifyShapes(shapes, {
+          glyphKind: sg.kind,
+          codePoint: isKashida ? 0x0640 : text.charCodeAt(original),
+          glyphName: font.glyphName(sg.glyphId),
+          em: ctx.unitsPerEm,
+        });
     return {
       glyphId: sg.glyphId,
       cluster: original,

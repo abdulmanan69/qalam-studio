@@ -15,13 +15,15 @@ import { createTextRun } from '@/features/projects/text-runs';
 import type { TextLayout } from '@/features/shaping/types';
 import { clamp } from '@/lib/utils';
 
+import { bookChapter, magazineArticle, newspaperFrontPage } from './publications';
+
 /**
  * Starter compositions. Each is a recipe (text, fonts, ornaments, colors),
  * turned into a normal project — every letter, dot and ornament stays
  * editable. Texts are public-domain classics (Qur'anic phrases, Iqbal, Hafez).
  */
 
-export type TemplateCategory = 'bismillah' | 'names' | 'logos' | 'poetry' | 'frames';
+export type TemplateCategory = 'publications' | 'bismillah' | 'names' | 'logos' | 'poetry' | 'frames';
 
 export type TemplateId =
   | 'bismillah-naskh'
@@ -33,7 +35,10 @@ export type TemplateId =
   | 'poetry-iqbal'
   | 'poetry-hafez'
   | 'frame-alhamdulillah'
-  | 'frame-mashallah';
+  | 'frame-mashallah'
+  | 'newspaper-front'
+  | 'magazine-article'
+  | 'book-chapter';
 
 interface TextSpec {
   text: string;
@@ -63,6 +68,8 @@ export interface TemplateDef {
   /** Painted bottom to top: ornaments first, then texts. */
   ornaments: OrnamentSpec[];
   texts: TextSpec[];
+  /** Publications build the whole multi-page document themselves. */
+  document?: (name: string, artboardName: string | undefined, now: number) => Project;
 }
 
 const GOLD: LayerStyle['fill'] = {
@@ -297,9 +304,43 @@ export const TEMPLATES: readonly TemplateDef[] = [
       },
     ],
   },
+  {
+    id: 'newspaper-front',
+    category: 'publications',
+    presetId: 'tabloid',
+    width: 1056,
+    height: 1632,
+    background: '#ffffff',
+    ornaments: [],
+    texts: [],
+    document: newspaperFrontPage,
+  },
+  {
+    id: 'magazine-article',
+    category: 'publications',
+    presetId: 'a4-portrait',
+    width: 794,
+    height: 1123,
+    background: '#ffffff',
+    ornaments: [],
+    texts: [],
+    document: magazineArticle,
+  },
+  {
+    id: 'book-chapter',
+    category: 'publications',
+    presetId: 'a5-portrait',
+    width: 559,
+    height: 794,
+    background: '#ffffff',
+    ornaments: [],
+    texts: [],
+    document: bookChapter,
+  },
 ];
 
 export const TEMPLATE_CATEGORIES: readonly TemplateCategory[] = [
+  'publications',
   'bismillah',
   'names',
   'logos',
@@ -325,6 +366,7 @@ export async function instantiateTemplate(
   artboardName?: string,
   now: number = Date.now(),
 ): Promise<Project> {
+  if (template.document) return template.document(name, artboardName, now);
   const base = buildProject(
     {
       name,

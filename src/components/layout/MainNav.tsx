@@ -188,6 +188,18 @@ export function MainNav() {
             <DropdownMenuShortcut>{shortcutText(shortcutCombo('importSvg'))}</DropdownMenuShortcut>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          <CommandItem
+            label={t('file.pageSetup')}
+            onSelect={() => {
+              useEditorStore.getState().setSetupDialogOpen(true);
+            }}
+          />
+          <CommandItem
+            label={t('file.placePhoto')}
+            combo={shortcutCombo('placeImage')}
+            onSelect={(a) => void a.placeImageFile()}
+          />
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             disabled={!currentProject}
             onSelect={() => {
@@ -249,6 +261,13 @@ export function MainNav() {
             {t('text.addText')}
             <DropdownMenuShortcut>{shortcutText(shortcutCombo('textTool'))}</DropdownMenuShortcut>
           </DropdownMenuItem>
+          <CommandItem
+            label={t('text.textFrame')}
+            combo={shortcutCombo('frameTool')}
+            onSelect={() => {
+              useEditorStore.getState().setTool('frame');
+            }}
+          />
           <DropdownMenuLabel className="tracking-normal normal-case">{t('text.editHint')}</DropdownMenuLabel>
         </NavMenu>
 

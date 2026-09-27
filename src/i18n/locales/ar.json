@@ -40,7 +40,9 @@
   },
   "file": {
     "downloadProject": "تنزيل المشروع (.qalam)",
-    "closeProject": "إغلاق المشروع"
+    "closeProject": "إغلاق المشروع",
+    "pageSetup": "إعداد الصفحة…",
+    "placePhoto": "وضع صورة…"
   },
   "edit": {
     "undo": "تراجع",
@@ -54,7 +56,8 @@
   },
   "text": {
     "addText": "إضافة نص…",
-    "editHint": "حدّد نصًا على لوح الرسم لتغيير خطه وحجمه ولونه."
+    "editHint": "حدّد نصًا على لوح الرسم لتغيير خطه وحجمه ولونه.",
+    "textFrame": "رسم إطار نص"
   },
   "textDialog": {
     "title": "إضافة نص",
@@ -211,7 +214,9 @@
       "toggleRulers": "إظهار المساطر أو إخفاؤها",
       "lockLayer": "قفل الطبقة أو فتحها",
       "exportDesign": "تصدير PNG أو SVG أو PDF",
-      "placeSvg": "وضع رسم SVG"
+      "placeSvg": "وضع رسم SVG",
+      "frameTool": "أداة إطار النص",
+      "placeImage": "وضع صورة (JPG، PNG)"
     }
   },
   "quickActions": {
@@ -322,7 +327,12 @@
       "story": "قصة",
       "banner": "لافتة",
       "hd-landscape": "HD أفقي",
-      "custom": "حجم مخصص"
+      "custom": "حجم مخصص",
+      "a5-portrait": "A5 عمودي (كتاب)",
+      "letter": "رسالة أمريكية",
+      "tabloid": "صحيفة تابلويد",
+      "berliner": "صحيفة برلينر",
+      "broadsheet": "صحيفة عريضة"
     }
   },
   "projects": {
@@ -383,7 +393,10 @@
       "kashida": "كشيدة",
       "placeSvg": "وضع رسم SVG",
       "kashidaHint": "اسحب حرفًا متصلًا جانبيًا لإطالته (كشيدة). أفلت للتطبيق.",
-      "baselineHint": "انقر على لوح الرسم لإضافة دليل خط أساس أفقي. اسحب الأدلة لتحريكها، واسحبها خارج لوح الرسم لإزالتها."
+      "baselineHint": "انقر على لوح الرسم لإضافة دليل خط أساس أفقي. اسحب الأدلة لتحريكها، واسحبها خارج لوح الرسم لإزالتها.",
+      "frame": "إطار نص",
+      "placeImage": "وضع صورة",
+      "frameHint": "اسحب على الصفحة لرسم إطار نص، أو انقر لحجم افتراضي. يتدفق النص الطويل عبر الأعمدة والإطارات المرتبطة."
     },
     "layers": {
       "title": "الطبقات",
@@ -607,7 +620,10 @@
       "poetry-iqbal": "بيت لإقبال (قصة)",
       "poetry-hafez": "بيت لحافظ",
       "frame-alhamdulillah": "ميدالية الحمد لله",
-      "frame-mashallah": "محراب ما شاء الله"
+      "frame-mashallah": "محراب ما شاء الله",
+      "newspaper-front": "الصفحة الأولى لصحيفة",
+      "magazine-article": "مقال مجلة",
+      "book-chapter": "فصل كتاب (A5)"
     },
     "categories": {
       "bismillah": {
@@ -629,6 +645,10 @@
       "frames": {
         "title": "الحواف والإطارات",
         "description": "إطارات زخرفية لإتمام التركيب."
+      },
+      "publications": {
+        "title": "صحف ومجلات وكتب",
+        "description": "تخطيطات متعددة الصفحات بأعمدة وصفحات رئيسية وأرقام صفحات ونص يتدفق من صفحة إلى أخرى."
       }
     }
   },
@@ -752,5 +772,96 @@
     "word": "تباعد الكلمات",
     "hint": "يضيف مسافة بين الحروف غير المتصلة وبين الكلمات. تبقى الحروف المتصلة متصلة دائمًا. يوازن التباعد التلقائي الفراغات غير المتساوية كما في النستعليق المكتوب باليد.",
     "reset": "إعادة ضبط التباعد"
+  },
+  "publishing": {
+    "pages": "الصفحات",
+    "styles": "الأنماط",
+    "pageName": "صفحة",
+    "masterName": "رئيسية {{letter}}",
+    "addPages": "إضافة",
+    "pagesToAdd": "صفحات",
+    "setup": "إعداد الصفحة",
+    "setupTitle": "إعداد الصفحة",
+    "setupDescription": "حجم الصفحة والهوامش والأعمدة والنزف. تلتصق الإطارات بالهوامش والأعمدة.",
+    "marginsAndColumns": "الهوامش والأعمدة",
+    "margin_top": "أعلى",
+    "margin_bottom": "أسفل",
+    "margin_left": "يسار",
+    "margin_right": "يمين",
+    "columns": "الأعمدة",
+    "gutter": "الفاصل",
+    "bleed": "النزف",
+    "applyAllPages": "تطبيق على كل الصفحات",
+    "moveUp": "نقل الصفحة إلى الأمام",
+    "moveDown": "نقل الصفحة إلى الخلف",
+    "masterForPage": "الصفحة الرئيسية لهذه الصفحة",
+    "noMaster": "بلا",
+    "applyToAll": "استخدام في كل الصفحات",
+    "masters": "الصفحات الرئيسية",
+    "newMaster": "صفحة رئيسية جديدة",
+    "mastersHint": "ضع الترويسة والتذييل وأرقام الصفحات والشعارات على صفحة رئيسية؛ تظهر في كل صفحة تستخدمها.",
+    "firstPageNumber": "رقم الصفحة الأولى",
+    "pageNumberHint": "اكتب {page} في أي نص لعرض رقم الصفحة، و{pages} لعدد الصفحات.",
+    "story": "المقال",
+    "storyText": "النص (فقرة في كل سطر)",
+    "overflow": "النص لا يتسع. أضف إطارًا مرتبطًا لمتابعته.",
+    "continueNextPage": "المتابعة في الصفحة التالية",
+    "continueBeside": "المتابعة في عمود جديد",
+    "words": "تم وضع {{placed}} من {{total}} كلمة",
+    "importText": "استيراد ملف نصي…",
+    "imported_zero": "لم تُستورد أي فقرة ({{count}})",
+    "imported_one": "استُوردت فقرة واحدة ({{count}})",
+    "imported_two": "استُوردت فقرتان ({{count}})",
+    "imported_few": "استُوردت {{count}} فقرات",
+    "imported_many": "استُوردت {{count}} فقرة",
+    "imported_other": "استُوردت {{count}} فقرة",
+    "paragraphStyles_zero": "أنماط الفقرات ({{count}})",
+    "paragraphStyles_one": "نمط الفقرة ({{count}})",
+    "paragraphStyles_two": "أنماط الفقرات ({{count}})",
+    "paragraphStyles_few": "أنماط الفقرات ({{count}})",
+    "paragraphStyles_many": "أنماط الفقرات ({{count}})",
+    "paragraphStyles_other": "أنماط الفقرات ({{count}})",
+    "paragraphStyle": "نمط الفقرة {{index}}",
+    "frame": "إطار النص",
+    "inset": "الحشوة",
+    "background": "الخلفية",
+    "backgroundColor": "لون الخلفية",
+    "border": "الحد",
+    "borderColor": "لون الحد",
+    "borderWidth": "العرض",
+    "thread": "الإطار {{position}} من {{count}} في هذا المقال",
+    "linkNextPage": "ربط إطار في الصفحة التالية",
+    "linkBeside": "ربط إطار بجانبه",
+    "unlink": "فك الربط",
+    "photo": "صورة",
+    "photoSize": "{{width}} × {{height}} بكسل",
+    "fit": "الملاءمة",
+    "fit_cover": "ملء واقتصاص",
+    "fit_contain": "احتواء",
+    "fit_stretch": "مط",
+    "focusX": "موضع الاقتصاص ⟷",
+    "focusY": "موضع الاقتصاص ↕",
+    "imageTooLarge": "الصورة أكبر من 15 MB. استخدم ملفًا أصغر.",
+    "imageFailed": "تعذّر وضع هذه الصورة.",
+    "wrap": "التفاف النص",
+    "wrapAround": "النص يلتف حوله",
+    "wrapOffset": "المسافة",
+    "wrapHint": "تحافظ إطارات النص في هذه الصفحة على هذه المسافة حول التحديد.",
+    "styleName": "اسم النمط",
+    "styleCopy": "نسخة {{name}}",
+    "duplicateStyle": "تكرار {{name}}",
+    "deleteStyle": "حذف {{name}}",
+    "justifyWith": "الضبط بواسطة",
+    "justify_kashida": "الكشيدة",
+    "justify_space": "مسافات الكلمات",
+    "align_justify": "ضبط",
+    "align_right": "يمين",
+    "align_center": "وسط",
+    "align_left": "يسار",
+    "firstIndent": "الإزاحة",
+    "spaceBefore": "قبل",
+    "spaceAfter": "بعد",
+    "stylesHint": "تغيير النمط يحدّث كل فقرة تستخدمه في كل المقالات.",
+    "printMarks": "علامات القص والنزف (للمطبعة)"
   }
 }

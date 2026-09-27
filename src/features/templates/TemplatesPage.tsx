@@ -11,6 +11,8 @@ import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/ca
 import { layoutRequestFor, tryGetShapingClient } from '@/features/editor/canvas/use-text-layouts';
 import { renderArtboardSvg } from '@/features/editor/export/render-svg';
 import { saveNewProject } from '@/features/projects/repository';
+import { masterLayersFor, pageNumber, pagesOf, substitutePageTokens } from '@/features/publishing/pages';
+import { computeStoryFlows } from '@/features/publishing/use-story-flows';
 import type { TextLayout } from '@/features/shaping/types';
 import { useDocumentTitle } from '@/lib/use-document-title';
 
@@ -32,18 +34,23 @@ const measure: MeasureText = async (run) => {
   }
 };
 
-/** SVG data URL of a template, rendered with the real fonts (as outlines). */
+/** SVG data URL of a template's first page, rendered with the real fonts (as outlines). */
 async function previewUrl(template: TemplateDef): Promise<string> {
   const project = await instantiateTemplate(template, 'preview', measure);
+  const page = pagesOf(project)[0];
+  if (!page) return '';
+  const number = pageNumber(project, page.id);
+  const count = pagesOf(project).length;
+  const masterLayers = masterLayersFor(project, page);
   const layouts = new Map<string, TextLayout>();
-  for (const layer of project.layers) {
+  for (const layer of [...masterLayers, ...project.layers.filter((l) => l.artboardId === page.id)]) {
     if (layer.kind !== 'text') continue;
-    const layout = await measure(layer);
+    const run = { ...layer, text: substitutePageTokens(layer.text, number, count, layer.language) };
+    const layout = await measure(run);
     if (layout) layouts.set(layer.id, layout);
   }
-  const artboard = project.artboards[0];
-  if (!artboard) return '';
-  const svg = renderArtboardSvg(artboard, project.layers, layouts);
+  const flows = (await computeStoryFlows(project, layouts)).frames;
+  const svg = renderArtboardSvg(page, project.layers, layouts, { flows, masterLayers });
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 

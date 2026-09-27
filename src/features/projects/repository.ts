@@ -5,6 +5,7 @@ import { clamp, createId } from '@/lib/utils';
 import { matchPreset } from './artboard-presets';
 import { db } from './db';
 import {
+  DEFAULT_PARAGRAPH_STYLES,
   MAX_ARTBOARD_SIZE,
   MAX_NAME_LENGTH,
   MIN_ARTBOARD_SIZE,
@@ -63,6 +64,9 @@ export function buildProject(input: NewProjectInput, now: number = Date.now()): 
     ],
     layers: [],
     groups: [],
+    stories: [],
+    paragraphStyles: structuredClone([...DEFAULT_PARAGRAPH_STYLES]),
+    firstPageNumber: 1,
   };
   return projectSchema.parse(project);
 }

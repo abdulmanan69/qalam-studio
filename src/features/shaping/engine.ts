@@ -1,3 +1,4 @@
+import { flowText, type FlowInput, type FlowResult } from './flow';
 import { HarfBuzzFont } from './harfbuzz-font';
 import { findAlternates, layoutText, type LayoutFont } from './layout';
 import { OutlineFont } from './outline-font';
@@ -90,6 +91,11 @@ export class ShapingEngine {
 
   layout(fontKey: string, text: string, options: LayoutOptions): TextLayout {
     return layoutText(this.getFont(fontKey), text, options);
+  }
+
+  /** Flow a story through text frames (every style's font must be loaded). */
+  flow(input: FlowInput): FlowResult {
+    return flowText(this.fonts, input);
   }
 
   /** For each string: true if the font has a glyph for every character (whitespace ignored). */

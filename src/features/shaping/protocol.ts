@@ -1,3 +1,4 @@
+import type { FlowInput, FlowResult } from './flow';
 import type { AlternateForm, LayoutOptions, ShapeOptions, TextLayout } from './types';
 
 interface FontRequest {
@@ -28,11 +29,20 @@ export interface CoverageRequestMessage extends FontRequest {
   strings: string[];
 }
 
-export type ShapingRequest = LayoutRequestMessage | AlternatesRequestMessage | CoverageRequestMessage;
+/** Main thread → worker: flow a story through its frames (fonts listed separately). */
+export interface FlowRequestMessage extends FontRequest {
+  type: 'flow';
+  fonts: { key: string; url: string }[];
+  input: FlowInput;
+}
+
+export type ShapingRequest =
+  LayoutRequestMessage | AlternatesRequestMessage | CoverageRequestMessage | FlowRequestMessage;
 
 /** Worker → main thread. */
 export type ShapingResponse =
   | { id: number; ok: true; layout: TextLayout }
   | { id: number; ok: true; alternates: AlternateForm[] }
   | { id: number; ok: true; coverage: boolean[] }
+  | { id: number; ok: true; flow: FlowResult }
   | { id: number; ok: false; error: string };

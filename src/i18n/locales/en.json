@@ -40,7 +40,9 @@
   },
   "file": {
     "downloadProject": "Download project (.qalam)",
-    "closeProject": "Close project"
+    "closeProject": "Close project",
+    "pageSetup": "Page setup…",
+    "placePhoto": "Place photo…"
   },
   "edit": {
     "undo": "Undo",
@@ -54,7 +56,8 @@
   },
   "text": {
     "addText": "Add text…",
-    "editHint": "Select text on the artboard to change its font, size and color."
+    "editHint": "Select text on the artboard to change its font, size and color.",
+    "textFrame": "Draw a text frame"
   },
   "textDialog": {
     "title": "Add text",
@@ -211,7 +214,9 @@
       "toggleRulers": "Show or hide rulers",
       "lockLayer": "Lock or unlock layer",
       "exportDesign": "Export PNG, SVG or PDF",
-      "placeSvg": "Place SVG artwork"
+      "placeSvg": "Place SVG artwork",
+      "frameTool": "Text frame tool",
+      "placeImage": "Place photo (JPG, PNG)"
     }
   },
   "quickActions": {
@@ -306,7 +311,12 @@
       "story": "Story",
       "banner": "Banner",
       "hd-landscape": "HD landscape",
-      "custom": "Custom size"
+      "custom": "Custom size",
+      "a5-portrait": "A5 portrait (book)",
+      "letter": "US Letter",
+      "tabloid": "Tabloid newspaper",
+      "berliner": "Berliner newspaper",
+      "broadsheet": "Broadsheet newspaper"
     }
   },
   "projects": {
@@ -367,7 +377,10 @@
       "kashida": "Kashida",
       "placeSvg": "Place SVG artwork",
       "kashidaHint": "Drag a joining letter sideways to lengthen it (kashida). Release to apply.",
-      "baselineHint": "Click on the artboard to add a horizontal baseline guide. Drag guides to move them; drag off the artboard to remove."
+      "baselineHint": "Click on the artboard to add a horizontal baseline guide. Drag guides to move them; drag off the artboard to remove.",
+      "frame": "Text frame",
+      "placeImage": "Place photo",
+      "frameHint": "Drag on the page to draw a text frame, or click for a default size. Long text flows through its columns and linked frames."
     },
     "layers": {
       "title": "Layers",
@@ -583,7 +596,10 @@
       "poetry-iqbal": "Iqbal couplet (story)",
       "poetry-hafez": "Hafez couplet",
       "frame-alhamdulillah": "Alhamdulillah medallion",
-      "frame-mashallah": "Mashallah arch"
+      "frame-mashallah": "Mashallah arch",
+      "newspaper-front": "Newspaper front page",
+      "magazine-article": "Magazine article",
+      "book-chapter": "Book chapter (A5)"
     },
     "categories": {
       "bismillah": {
@@ -605,6 +621,10 @@
       "frames": {
         "title": "Borders & frames",
         "description": "Ornamental frames to finish a composition."
+      },
+      "publications": {
+        "title": "Newspapers, magazines & books",
+        "description": "Multi-page layouts with columns, master pages, page numbers and text that flows from page to page."
       }
     }
   },
@@ -720,5 +740,88 @@
     "word": "Word spacing",
     "hint": "Adds space between letters that do not connect and between words. Connected letters always stay joined. Automatic spacing evens out uneven gaps, as in hand-set Nastaliq.",
     "reset": "Reset spacing"
+  },
+  "publishing": {
+    "pages": "Pages",
+    "styles": "Styles",
+    "pageName": "Page",
+    "masterName": "Master {{letter}}",
+    "addPages": "Add",
+    "pagesToAdd": "Pages",
+    "setup": "Page setup",
+    "setupTitle": "Page setup",
+    "setupDescription": "Page size, margins, columns and bleed. Frames snap to the margins and columns.",
+    "marginsAndColumns": "Margins and columns",
+    "margin_top": "Top",
+    "margin_bottom": "Bottom",
+    "margin_left": "Left",
+    "margin_right": "Right",
+    "columns": "Columns",
+    "gutter": "Gutter",
+    "bleed": "Bleed",
+    "applyAllPages": "Apply to all pages",
+    "moveUp": "Move page earlier",
+    "moveDown": "Move page later",
+    "masterForPage": "Master page for this page",
+    "noMaster": "None",
+    "applyToAll": "Use on all pages",
+    "masters": "Master pages",
+    "newMaster": "New master",
+    "mastersHint": "Put headers, footers, page numbers and logos on a master page; they appear on every page that uses it.",
+    "firstPageNumber": "First page number",
+    "pageNumberHint": "Type {page} in any text to show the page number, {pages} for the number of pages.",
+    "story": "Story",
+    "storyText": "Text (one paragraph per line)",
+    "overflow": "The text does not fit. Add a linked frame to continue it.",
+    "continueNextPage": "Continue on next page",
+    "continueBeside": "Continue in a new column",
+    "words": "{{placed}} of {{total}} words placed",
+    "importText": "Import text file…",
+    "imported_one": "{{count}} paragraph imported",
+    "imported_other": "{{count}} paragraphs imported",
+    "paragraphStyles_one": "Paragraph style ({{count}} paragraph)",
+    "paragraphStyles_other": "Paragraph styles ({{count}} paragraphs)",
+    "paragraphStyle": "Style of paragraph {{index}}",
+    "frame": "Text frame",
+    "inset": "Inset",
+    "background": "Background",
+    "backgroundColor": "Background color",
+    "border": "Border",
+    "borderColor": "Border color",
+    "borderWidth": "Width",
+    "thread": "Frame {{position}} of {{count}} in this story",
+    "linkNextPage": "Link frame on next page",
+    "linkBeside": "Link frame beside",
+    "unlink": "Unlink",
+    "photo": "Photo",
+    "photoSize": "{{width}} × {{height}} pixels",
+    "fit": "Fit",
+    "fit_cover": "Fill & crop",
+    "fit_contain": "Fit inside",
+    "fit_stretch": "Stretch",
+    "focusX": "Crop position ⟷",
+    "focusY": "Crop position ↕",
+    "imageTooLarge": "The photo is larger than 15 MB. Use a smaller file.",
+    "imageFailed": "This photo could not be placed.",
+    "wrap": "Text wrap",
+    "wrapAround": "Text flows around this",
+    "wrapOffset": "Distance",
+    "wrapHint": "Text frames on this page keep this distance around the selection.",
+    "styleName": "Style name",
+    "styleCopy": "{{name}} copy",
+    "duplicateStyle": "Duplicate {{name}}",
+    "deleteStyle": "Delete {{name}}",
+    "justifyWith": "Justify with",
+    "justify_kashida": "Kashida",
+    "justify_space": "Word spaces",
+    "align_justify": "Justify",
+    "align_right": "Right",
+    "align_center": "Center",
+    "align_left": "Left",
+    "firstIndent": "Indent",
+    "spaceBefore": "Before",
+    "spaceAfter": "After",
+    "stylesHint": "Changing a style updates every paragraph that uses it, in every story.",
+    "printMarks": "Crop marks and bleed (for the printer)"
   }
 }

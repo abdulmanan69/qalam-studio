@@ -1,6 +1,8 @@
 import {
   Baseline,
+  Columns3,
   Hand,
+  Image as ImageIcon,
   ImagePlus,
   MousePointer2,
   MoveHorizontal,
@@ -19,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { useEditorStore, type EditorTool } from './editor-store';
 import type { EditorActions } from './use-editor-actions';
 
-type ToolId = EditorTool | 'text' | 'placeSvg';
+type ToolId = EditorTool | 'text' | 'placeSvg' | 'placeImage';
 
 interface ToolDef {
   id: ToolId;
@@ -33,10 +35,12 @@ const TOOLS: readonly ToolDef[] = [
   { id: 'text', icon: Type, combo: shortcutCombo('textTool') },
   { id: 'kashida', icon: MoveHorizontal, combo: shortcutCombo('kashidaTool') },
   { id: 'baseline', icon: Baseline, combo: shortcutCombo('baselineTool') },
+  { id: 'frame', icon: Columns3, combo: shortcutCombo('frameTool') },
+  { id: 'placeImage', icon: ImageIcon, combo: shortcutCombo('placeImage') },
   { id: 'placeSvg', icon: ImagePlus, combo: shortcutCombo('placeSvg') },
 ];
 
-const MODES = new Set<ToolId>(['select', 'hand', 'kashida', 'baseline']);
+const MODES = new Set<ToolId>(['select', 'hand', 'kashida', 'baseline', 'frame']);
 
 export function ToolsPanel({ actions }: { actions: EditorActions }) {
   const { t } = useTranslation();
@@ -47,6 +51,7 @@ export function ToolsPanel({ actions }: { actions: EditorActions }) {
   const activate = (id: ToolId) => {
     if (id === 'text') setTextDialogOpen(true);
     else if (id === 'placeSvg') void actions.placeSvgFile();
+    else if (id === 'placeImage') void actions.placeImageFile();
     else setTool(id);
   };
 
@@ -56,7 +61,7 @@ export function ToolsPanel({ actions }: { actions: EditorActions }) {
         <CardTitle>{t('editor.tools.title')}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-2 px-2 pb-2">
-        <div role="toolbar" aria-label={t('editor.tools.title')} className="grid grid-cols-6 gap-1">
+        <div role="toolbar" aria-label={t('editor.tools.title')} className="grid grid-cols-4 gap-1">
           {TOOLS.map(({ id, icon: Icon, combo }) => {
             const label = t(`editor.tools.${id}`);
             const isMode = MODES.has(id);
@@ -88,7 +93,7 @@ export function ToolsPanel({ actions }: { actions: EditorActions }) {
             );
           })}
         </div>
-        {(tool === 'kashida' || tool === 'baseline') && (
+        {(tool === 'kashida' || tool === 'baseline' || tool === 'frame') && (
           <p className="px-1 text-[0.6875rem] text-muted-foreground" role="status">
             {t(`editor.tools.${tool}Hint`)}
           </p>

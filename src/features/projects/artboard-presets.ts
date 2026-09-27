@@ -18,6 +18,12 @@ export const ARTBOARD_PRESETS: readonly ArtboardPreset[] = [
   { id: 'a4-portrait', group: 'print', width: 794, height: 1123 },
   { id: 'a4-landscape', group: 'print', width: 1123, height: 794 },
   { id: 'a3-portrait', group: 'print', width: 1123, height: 1587 },
+  { id: 'a5-portrait', group: 'print', width: 559, height: 794 },
+  { id: 'letter', group: 'print', width: 816, height: 1056 },
+  // Newspaper formats: tabloid 11 × 17 in, Berliner 315 × 470 mm, broadsheet 15 × 22¾ in.
+  { id: 'tabloid', group: 'print', width: 1056, height: 1632 },
+  { id: 'berliner', group: 'print', width: 1191, height: 1776 },
+  { id: 'broadsheet', group: 'print', width: 1440, height: 2184 },
   { id: 'square-post', group: 'social', width: 1080, height: 1080 },
   { id: 'story', group: 'social', width: 1080, height: 1920 },
   { id: 'banner', group: 'social', width: 1500, height: 500 },

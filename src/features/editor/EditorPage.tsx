@@ -12,10 +12,22 @@ import { useProject } from '@/features/projects/hooks';
 import { normalizeName } from '@/features/projects/repository';
 import type { Project, TextRun } from '@/features/projects/schema';
 import { useProjectActions } from '@/features/projects/use-project-actions';
+import {
+  masterLayersFor,
+  pageNumber,
+  pagesOf,
+  storyFrames,
+  substitutePageTokens,
+  wrapTextLayers,
+} from '@/features/publishing/pages';
+import { useStoryFlows } from '@/features/publishing/use-story-flows';
 import { useDocumentTitle } from '@/lib/use-document-title';
 import { useHotkeys, type HotkeyBinding } from '@/lib/use-hotkeys';
 
-import { ArtboardsPanel } from './ArtboardsPanel';
+import { DocumentSetupDialog } from '@/features/publishing/DocumentSetupDialog';
+import { PagesPanel } from '@/features/publishing/PagesPanel';
+import { ParagraphStylesPanel } from '@/features/publishing/ParagraphStylesPanel';
+
 import { AssetsPanel } from './AssetsPanel';
 import type { StageCallbacks, StageScene } from './canvas/artboard-stage';
 import { useTextLayouts } from './canvas/use-text-layouts';
@@ -68,8 +80,9 @@ function useEditorShortcuts(actions: EditorActions, onDownload: () => void) {
   const textDialogOpen = useEditorStore((s) => s.textDialogOpen);
   const exportOpen = useEditorStore((s) => s.exportDialogOpen);
   const historyOpen = useEditorStore((s) => s.historyDialogOpen);
+  const setupOpen = useEditorStore((s) => s.setupDialogOpen);
   const appDialogOpen = useUiStore((s) => s.dialog !== null);
-  const idle = !textDialogOpen && !exportOpen && !historyOpen && !appDialogOpen;
+  const idle = !textDialogOpen && !exportOpen && !historyOpen && !setupOpen && !appDialogOpen;
   const zoomBy = (dir: 1 | -1) => {
     const state = store.getState();
     state.setZoom(Math.min(nextZoomStep(state.zoom, dir), state.maxZoom));
@@ -130,6 +143,12 @@ function useEditorShortcuts(actions: EditorActions, onDownload: () => void) {
     }),
     on('baselineTool', () => {
       store.getState().setTool('baseline');
+    }),
+    on('frameTool', () => {
+      store.getState().setTool('frame');
+    }),
+    on('placeImage', () => {
+      void actions.placeImageFile();
     }),
     on('textTool', () => {
       store.getState().setTextDialogOpen(true);
@@ -237,8 +256,28 @@ function EditorWorkspace({ project }: { project: Project }) {
     () => project.layers.filter((l) => l.artboardId === artboardId),
     [project.layers, artboardId],
   );
-  const texts = useMemo(() => layers.filter((l): l is TextRun => l.kind === 'text'), [layers]);
+  const masterLayers = useMemo(
+    () => (artboard ? masterLayersFor(project, artboard) : []),
+    [project, artboard],
+  );
+  // Text shaped for this page: its own text, master page text and every
+  // text with a wrap (frames anywhere flow around it). Page-number tokens
+  // are replaced with this page's number.
+  const texts = useMemo(() => {
+    const page = artboard ? pageNumber(project, artboard.id) : null;
+    const count = pagesOf(project).length;
+    const seen = new Set<string>();
+    const out: TextRun[] = [];
+    for (const layer of [...masterLayers, ...layers, ...wrapTextLayers(project)]) {
+      if (layer.kind !== 'text' || seen.has(layer.id)) continue;
+      seen.add(layer.id);
+      const text = substitutePageTokens(layer.text, page, count, layer.language);
+      out.push(text === layer.text ? layer : { ...layer, text });
+    }
+    return out;
+  }, [project, artboard, layers, masterLayers]);
   const { layouts, errors } = useTextLayouts(texts, kashidaPreview);
+  const flows = useStoryFlows(project, layouts);
 
   // Leave unit editing if the edited layer disappears (undo, delete).
   useEffect(() => {
@@ -253,10 +292,25 @@ function EditorWorkspace({ project }: { project: Project }) {
       artboard
         ? {
             artboard,
-            layers: layers.map((layer) => ({
-              layer,
-              layout: layer.kind === 'text' ? layouts.get(layer.id) : undefined,
-            })),
+            layers: [
+              ...masterLayers.map((layer) => ({
+                layer,
+                layout: layer.kind === 'text' ? layouts.get(layer.id) : undefined,
+                readonly: true,
+              })),
+              ...layers.map((layer) => {
+                if (layer.kind !== 'frame') {
+                  return { layer, layout: layer.kind === 'text' ? layouts.get(layer.id) : undefined };
+                }
+                const story = flows.stories.get(layer.storyId);
+                const chain = storyFrames(project, layer.storyId);
+                return {
+                  layer,
+                  flow: flows.frames.get(layer.id),
+                  overflow: (story?.overflow ?? false) && chain.at(-1)?.id === layer.id,
+                };
+              }),
+            ],
             selectedIds,
             edit:
               editLayerId && editLevel !== 'object'
@@ -266,7 +320,21 @@ function EditorWorkspace({ project }: { project: Project }) {
             view,
           }
         : null,
-    [artboard, layers, layouts, selectedIds, editLayerId, editLevel, lockMarks, selectedUnits, tool, view],
+    [
+      artboard,
+      project,
+      layers,
+      masterLayers,
+      layouts,
+      flows,
+      selectedIds,
+      editLayerId,
+      editLevel,
+      lockMarks,
+      selectedUnits,
+      tool,
+      view,
+    ],
   );
 
   const actions = useEditorActions({
@@ -312,6 +380,10 @@ function EditorWorkspace({ project }: { project: Project }) {
         actions.setKashida(layerId, letter, value);
         useEditorStore.getState().setKashidaPreview(null);
       },
+      createFrame: (rect) => {
+        actions.createFrame(rect);
+        useEditorStore.getState().setTool('select');
+      },
     }),
     [actions],
   );
@@ -350,16 +422,20 @@ function EditorWorkspace({ project }: { project: Project }) {
         >
           <ToolsPanel actions={actions} />
           <Tabs defaultValue="layers" className="flex min-h-0 flex-col gap-2">
-            <TabsList className="grid grid-cols-3">
+            <TabsList className="grid grid-cols-4">
               <TabsTrigger value="layers">{t('editor.layers.title')}</TabsTrigger>
-              <TabsTrigger value="artboards">{t('editor.artboards.title')}</TabsTrigger>
+              <TabsTrigger value="pages">{t('publishing.pages')}</TabsTrigger>
+              <TabsTrigger value="styles">{t('publishing.styles')}</TabsTrigger>
               <TabsTrigger value="assets">{t('editor.assets.title')}</TabsTrigger>
             </TabsList>
             <TabsContent value="layers">
               <LayersPanel project={project} artboard={artboard} actions={actions} />
             </TabsContent>
-            <TabsContent value="artboards">
-              <ArtboardsPanel project={project} activeId={artboard.id} actions={actions} />
+            <TabsContent value="pages">
+              <PagesPanel project={project} activeId={artboard.id} actions={actions} />
+            </TabsContent>
+            <TabsContent value="styles">
+              <ParagraphStylesPanel project={project} actions={actions} />
             </TabsContent>
             <TabsContent value="assets">
               <AssetsPanel actions={actions} />
@@ -378,12 +454,14 @@ function EditorWorkspace({ project }: { project: Project }) {
             artboard={artboard}
             layouts={layouts}
             errors={errors}
+            flows={flows}
             actions={actions}
           />
         </aside>
       </div>
       <AddTextDialog artboard={artboard} onAdd={actions.addText} />
       <ExportDialog project={project} artboard={artboard} />
+      <DocumentSetupDialog project={project} artboard={artboard} actions={actions} />
       <VersionHistoryDialog project={project} />
     </div>
   );

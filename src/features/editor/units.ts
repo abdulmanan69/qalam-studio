@@ -1,8 +1,16 @@
-import type { PartKindName, PartOverride, SvgAsset, TextRun } from '@/features/projects/schema';
+import type {
+  ImageLayer,
+  Layer,
+  PartKindName,
+  PartOverride,
+  SvgAsset,
+  TextRun,
+} from '@/features/projects/schema';
 import type { Box, TextLayout } from '@/features/shaping/types';
 import {
   applyToPoint,
   compose,
+  multiply,
   NO_PART_TRANSFORM,
   partMatrix,
   pathDataBounds,
@@ -157,8 +165,9 @@ export function transformedBounds(path: string, m: Matrix): Box | null {
 }
 
 /** Artboard-space bounds of a layer (null for a text layer that is not shaped yet or is blank). */
-export function layerBounds(layer: TextRun | SvgAsset, layout: TextLayout | undefined): Box | null {
-  if (layer.kind === 'svg') {
+export function layerBounds(layer: Layer, layout: TextLayout | undefined): Box | null {
+  if (layer.kind === 'frame') return { x: layer.x, y: layer.y, width: layer.width, height: layer.height };
+  if (layer.kind === 'svg' || layer.kind === 'image') {
     return transformedBounds(`M0 0L${String(layer.width)} ${String(layer.height)}`, assetMatrix(layer));
   }
   if (!layout) return null;
@@ -185,4 +194,52 @@ export function gradientVector(angle: number): { x1: number; y1: number; x2: num
 export function hexToRgba(hex: string, alpha: number): string {
   const n = Number.parseInt(hex.slice(1), 16);
   return `rgba(${String((n >> 16) & 255)},${String((n >> 8) & 255)},${String(n & 255)},${String(alpha)})`;
+}
+
+/**
+ * How a photo sits in its box: the part of the bitmap that is shown
+ * (crop, in bitmap pixels) and the matrix from that crop to the artboard.
+ */
+export function imagePlacement(layer: ImageLayer): {
+  cropX: number;
+  cropY: number;
+  width: number;
+  height: number;
+  matrix: Matrix;
+} {
+  const nw = layer.naturalWidth;
+  const nh = layer.naturalHeight;
+  const base = { x: layer.x, y: layer.y, angle: layer.angle };
+  if (layer.fit === 'stretch') {
+    return {
+      cropX: 0,
+      cropY: 0,
+      width: nw,
+      height: nh,
+      matrix: compose({ ...base, scaleX: layer.width / nw, scaleY: layer.height / nh }),
+    };
+  }
+  if (layer.fit === 'contain') {
+    const s = Math.min(layer.width / nw, layer.height / nh);
+    const dx = (layer.width - nw * s) / 2;
+    const dy = (layer.height - nh * s) / 2;
+    return {
+      cropX: 0,
+      cropY: 0,
+      width: nw,
+      height: nh,
+      matrix: multiply(compose({ ...base, scaleX: 1, scaleY: 1 }), [s, 0, 0, s, dx, dy]),
+    };
+  }
+  const s = Math.max(layer.width / nw, layer.height / nh);
+  const vw = Math.min(nw, layer.width / s);
+  const vh = Math.min(nh, layer.height / s);
+  const clamp = (v: number, max: number) => Math.min(Math.max(0, v), Math.max(0, max));
+  return {
+    cropX: clamp(layer.focusX * nw - vw / 2, nw - vw),
+    cropY: clamp(layer.focusY * nh - vh / 2, nh - vh),
+    width: vw,
+    height: vh,
+    matrix: compose({ ...base, scaleX: s, scaleY: s }),
+  };
 }

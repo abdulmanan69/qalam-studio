@@ -1,6 +1,8 @@
 import {
   ArrowDown,
   ArrowUp,
+  Camera,
+  Columns3,
   Eye,
   EyeOff,
   Folder,
@@ -101,11 +103,17 @@ export function LayersPanel({ project, artboard, actions }: LayersPanelProps) {
 
   const rows = layerRows(project, artboard.id);
   const selected = new Set(selectedIds);
-  const labelOf = (layer: Layer) =>
-    layer.name ||
-    (layer.kind === 'text'
-      ? textRunLabel(layer.text) || t('editor.layers.untitledText')
-      : t('editor.layers.untitledArtwork'));
+  const labelOf = (layer: Layer): string => {
+    if (layer.name) return layer.name;
+    if (layer.kind === 'text') return textRunLabel(layer.text) || t('editor.layers.untitledText');
+    if (layer.kind === 'frame') {
+      const story = project.stories.find((s) => s.id === layer.storyId);
+      const first = story?.paragraphs.find((p) => p.text.trim())?.text ?? '';
+      return textRunLabel(first) || t('publishing.frame');
+    }
+    if (layer.kind === 'image') return t('publishing.photo');
+    return t('editor.layers.untitledArtwork');
+  };
 
   const onRowClick = (event: MouseEvent, ids: string[]) => {
     if (event.shiftKey || event.metaKey || event.ctrlKey) {
@@ -267,7 +275,14 @@ export function LayersPanel({ project, artboard, actions }: LayersPanelProps) {
           const { layer, nested } = row;
           const label = labelOf(layer);
           const isSelected = selected.has(layer.id);
-          const Icon = layer.kind === 'text' ? Type : ImageIcon;
+          const Icon =
+            layer.kind === 'text'
+              ? Type
+              : layer.kind === 'frame'
+                ? Columns3
+                : layer.kind === 'image'
+                  ? Camera
+                  : ImageIcon;
           return (
             <li
               key={layer.id}

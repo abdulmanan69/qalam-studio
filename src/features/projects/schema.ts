@@ -11,8 +11,11 @@ import { z } from 'zod';
  * v1 → v2: calligraphy text runs and rotation for SVG artwork.
  * v2 → v3: one ordered `layers` list (z-order, lock, name, groups), per-part
  *          adjustments of letters, kashida, alternate forms, styles, guides.
+ * v3 → v4: publishing — stories flowing through linked text frames, paragraph
+ *          styles, placed photos, text wrap, page margins/columns/bleed and
+ *          master pages.
  */
-export const PROJECT_SCHEMA_VERSION = 3;
+export const PROJECT_SCHEMA_VERSION = 4;
 
 export const MIN_ARTBOARD_SIZE = 16;
 export const MAX_ARTBOARD_SIZE = 10_000;
@@ -25,8 +28,12 @@ export const MAX_FONT_SIZE = 2000;
 export const MIN_LINE_HEIGHT = 0.3;
 export const MAX_LINE_HEIGHT = 4;
 export const MAX_KASHIDA_EM = 20;
-export const MAX_ARTBOARDS = 50;
-export const MAX_LAYERS = 1500;
+export const MAX_ARTBOARDS = 500;
+export const MAX_LAYERS = 20_000;
+/** Upper bound for one embedded photo (data URL characters, ~15 MB of image data). */
+export const MAX_IMAGE_CHARS = 20 * 1024 * 1024;
+export const MAX_PARAGRAPH_LENGTH = 20_000;
+export const MAX_COLUMNS = 12;
 
 /** Content languages (BCP 47). They select language-specific letter forms when shaping. */
 export const TEXT_LANGUAGES = ['ur', 'ar', 'fa', 'ku', 'ps', 'sd'] as const;
@@ -43,6 +50,11 @@ export const ARTBOARD_PRESET_IDS = [
   'story',
   'banner',
   'hd-landscape',
+  'a5-portrait',
+  'letter',
+  'tabloid',
+  'berliner',
+  'broadsheet',
   'custom',
 ] as const;
 
@@ -62,6 +74,21 @@ export const guideSchema = z.object({
   position: z.number(),
 });
 
+const lengthSchema = z.number().min(0).max(MAX_ARTBOARD_SIZE);
+
+export const marginsSchema = z.object({
+  top: lengthSchema,
+  bottom: lengthSchema,
+  /** Physical left and right (not start/end), in pixels. */
+  left: lengthSchema,
+  right: lengthSchema,
+});
+
+export const columnsSchema = z.object({
+  count: z.number().int().min(1).max(MAX_COLUMNS),
+  gutter: z.number().min(0).max(500),
+});
+
 export const artboardSchema = z.object({
   id: idSchema,
   name: z.string().trim().min(1).max(MAX_NAME_LENGTH),
@@ -70,6 +97,16 @@ export const artboardSchema = z.object({
   height: dimensionSchema,
   background: hexColorSchema,
   guides: z.array(guideSchema).max(200),
+  /** Page margins (shown as guides; text frames snap to them). */
+  margins: marginsSchema.optional(),
+  /** Column grid inside the margins. */
+  columns: columnsSchema.optional(),
+  /** Bleed around the page for print, in pixels. */
+  bleed: z.number().min(0).max(200).optional(),
+  /** A master page: its layers appear on every page that uses it. */
+  master: z.boolean().optional(),
+  /** Master page drawn behind this page. */
+  masterId: idSchema.nullable().optional(),
 });
 
 export const gradientStopSchema = z.object({ offset: unit, color: hexColorSchema });
@@ -124,6 +161,9 @@ export const rangeFeatureSchema = z
   })
   .refine((f) => f.end > f.start, 'end must be after start');
 
+/** Text frames flow around layers with a wrap, keeping `offset` pixels away. */
+export const wrapSchema = z.object({ offset: z.number().min(0).max(500) });
+
 const layerBase = {
   id: idSchema,
   artboardId: idSchema,
@@ -132,6 +172,7 @@ const layerBase = {
   hidden: z.boolean(),
   locked: z.boolean(),
   groupId: idSchema.nullable(),
+  wrap: wrapSchema.optional(),
 };
 
 export const svgAssetSchema = z.object({
@@ -186,7 +227,86 @@ export const textRunSchema = z.object({
     .optional(),
 });
 
-export const layerSchema = z.discriminatedUnion('kind', [svgAssetSchema, textRunSchema]);
+/** A placed photo (PNG, JPEG, WebP or GIF), shown in a box with a fit mode. */
+export const imageLayerSchema = z.object({
+  ...layerBase,
+  kind: z.literal('image'),
+  src: z
+    .string()
+    .max(MAX_IMAGE_CHARS)
+    .regex(/^data:image\/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+$/, 'Expected an embedded image'),
+  naturalWidth: z.number().positive(),
+  naturalHeight: z.number().positive(),
+  x: z.number(),
+  y: z.number(),
+  width: z.number().positive(),
+  height: z.number().positive(),
+  angle: z.number(),
+  opacity: unit,
+  /** cover = fill the box and crop; contain = fit inside; stretch = distort. */
+  fit: z.enum(['cover', 'contain', 'stretch']),
+  /** Focal point for cropping, 0–1 (0.5 = centered). */
+  focusX: unit,
+  focusY: unit,
+});
+
+/**
+ * A text frame: a box (optionally with columns) that a story flows through.
+ * Frames of one story are threaded in `order`; text that does not fit in one
+ * frame continues in the next, on any page.
+ */
+export const textFrameSchema = z.object({
+  ...layerBase,
+  kind: z.literal('frame'),
+  storyId: idSchema,
+  order: z.number().int().min(0),
+  x: z.number(),
+  y: z.number(),
+  width: z.number().min(8),
+  height: z.number().min(8),
+  columns: columnsSchema,
+  /** Padding inside the frame. */
+  inset: z.number().min(0).max(500),
+  background: hexColorSchema.nullable(),
+  border: z.object({ color: hexColorSchema, width: z.number().min(0).max(50) }).nullable(),
+});
+
+export const layerSchema = z.discriminatedUnion('kind', [
+  svgAssetSchema,
+  textRunSchema,
+  imageLayerSchema,
+  textFrameSchema,
+]);
+
+export const PARAGRAPH_ALIGNS = ['justify', 'right', 'center', 'left'] as const;
+
+/** Named paragraph formatting (body text, headline, caption…). */
+export const paragraphStyleSchema = z.object({
+  id: idSchema,
+  name: z.string().trim().min(1).max(MAX_NAME_LENGTH),
+  fontId: z.string().min(1).max(64),
+  language: z.enum(TEXT_LANGUAGES),
+  fontSize: z.number().min(MIN_FONT_SIZE).max(MAX_FONT_SIZE),
+  /** Multiplier of the font's natural line height. */
+  lineHeight: z.number().min(MIN_LINE_HEIGHT).max(MAX_LINE_HEIGHT),
+  align: z.enum(PARAGRAPH_ALIGNS),
+  /** How justified lines are filled: kashida (traditional) or wider word spaces. */
+  justify: z.enum(['kashida', 'space']),
+  /** First-line indent in em. */
+  firstIndent: z.number().min(0).max(10),
+  spaceBefore: z.number().min(0).max(1000),
+  spaceAfter: z.number().min(0).max(1000),
+  color: hexColorSchema,
+});
+
+export const storySchema = z.object({
+  id: idSchema,
+  name: z.string().max(MAX_NAME_LENGTH),
+  paragraphs: z
+    .array(z.object({ text: z.string().max(MAX_PARAGRAPH_LENGTH), styleId: idSchema }))
+    .min(1)
+    .max(10_000),
+});
 
 export const groupSchema = z.object({
   id: idSchema,
@@ -204,6 +324,11 @@ export const projectSchema = z
     /** Bottom-to-top paint order. */
     layers: z.array(layerSchema).max(MAX_LAYERS),
     groups: z.array(groupSchema).max(500),
+    /** Long text that flows through text frames. */
+    stories: z.array(storySchema).max(2000),
+    paragraphStyles: z.array(paragraphStyleSchema).min(1).max(200),
+    /** Number of the first page (e.g. 1). */
+    firstPageNumber: z.number().int().min(-9999).max(99_999),
   })
   .superRefine((project, ctx) => {
     const artboardIds = new Set(project.artboards.map((a) => a.id));
@@ -224,14 +349,51 @@ export const projectSchema = z
           message: 'Layer references a group that does not exist',
         });
       }
+      if (layer.kind === 'frame' && !project.stories.some((s) => s.id === layer.storyId)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['layers', index, 'storyId'],
+          message: 'Frame references a story that does not exist',
+        });
+      }
       if (layerIds.has(layer.id)) {
         ctx.addIssue({ code: 'custom', path: ['layers', index, 'id'], message: 'Duplicate layer id' });
       }
       layerIds.add(layer.id);
     });
+    const styleIds = new Set(project.paragraphStyles.map((s) => s.id));
+    project.stories.forEach((story, s) => {
+      story.paragraphs.forEach((paragraph, p) => {
+        if (!styleIds.has(paragraph.styleId)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['stories', s, 'paragraphs', p, 'styleId'],
+            message: 'Paragraph uses a style that does not exist',
+          });
+        }
+      });
+    });
+    const masters = new Set(project.artboards.filter((a) => a.master).map((a) => a.id));
+    project.artboards.forEach((artboard, index) => {
+      if (artboard.masterId && !masters.has(artboard.masterId)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['artboards', index, 'masterId'],
+          message: 'Page uses a master page that does not exist',
+        });
+      }
+    });
   });
 
 export type Guide = z.infer<typeof guideSchema>;
+export type Margins = z.infer<typeof marginsSchema>;
+export type Columns = z.infer<typeof columnsSchema>;
+export type ImageLayer = z.infer<typeof imageLayerSchema>;
+export type TextFrame = z.infer<typeof textFrameSchema>;
+export type ParagraphStyle = z.infer<typeof paragraphStyleSchema>;
+export type ParagraphAlign = (typeof PARAGRAPH_ALIGNS)[number];
+export type Story = z.infer<typeof storySchema>;
+export type StoryParagraph = Story['paragraphs'][number];
 export type Artboard = z.infer<typeof artboardSchema>;
 export type Paint = z.infer<typeof paintSchema>;
 export type GradientStop = z.infer<typeof gradientStopSchema>;
@@ -252,3 +414,41 @@ export const DEFAULT_TEXT_STYLE: LayerStyle = {
   opacity: 1,
   shadow: null,
 };
+
+const style = (
+  id: string,
+  name: string,
+  fontSize: number,
+  align: ParagraphStyle['align'],
+  extra: Partial<ParagraphStyle> = {},
+): ParagraphStyle => ({
+  id,
+  name,
+  fontId: 'noto-nastaliq-urdu',
+  language: 'ur',
+  fontSize,
+  // Nastaliq fonts have very tall natural lines (≈ 2.5 em); 0.7 gives newspaper leading.
+  lineHeight: 0.7,
+  align,
+  justify: 'kashida',
+  firstIndent: 0,
+  spaceBefore: 0,
+  spaceAfter: 0,
+  color: '#1a1a1a',
+  ...extra,
+});
+
+/** Paragraph styles every new document starts with (Urdu newspaper defaults). */
+export const DEFAULT_PARAGRAPH_STYLES: readonly ParagraphStyle[] = [
+  style('body', 'Body', 16, 'justify', { spaceAfter: 6 }),
+  style('headline', 'Headline', 48, 'center', { spaceAfter: 8 }),
+  style('subhead', 'Subheading', 24, 'right', { spaceBefore: 6, spaceAfter: 4 }),
+  style('byline', 'Byline', 13, 'right', { color: '#555555', spaceAfter: 6 }),
+  style('caption', 'Caption', 12, 'right', { color: '#333333' }),
+  style('body-naskh', 'Body (Naskh)', 16, 'justify', {
+    fontId: 'amiri',
+    language: 'ar',
+    lineHeight: 1.1,
+    spaceAfter: 6,
+  }),
+];

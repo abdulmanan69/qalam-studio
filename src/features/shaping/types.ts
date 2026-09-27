@@ -86,6 +86,11 @@ export interface LayoutOptions extends ShapeOptions {
    * never pulled apart.
    */
   opticalSpacing?: boolean;
+  /**
+   * Running text: keep each glyph whole (no body/dot/mark parts). Much faster
+   * for long articles where individual dots are not edited.
+   */
+  simple?: boolean;
 }
 
 /** A separately movable piece of a glyph: the letter body, a dot or a mark. */

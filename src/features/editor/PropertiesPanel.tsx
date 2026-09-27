@@ -54,6 +54,11 @@ import { SHAPING_UNAVAILABLE } from './canvas/use-text-layouts';
 import { useEditorStore } from './editor-store';
 import type { AlignMode } from './layer-ops';
 import { NumberField } from './NumberField';
+import { FramePanel } from '@/features/publishing/FramePanel';
+import { ImagePanel } from '@/features/publishing/ImagePanel';
+import { TextWrapCard } from '@/features/publishing/TextWrapCard';
+import type { StoryFlows } from '@/features/publishing/use-story-flows';
+
 import { LetterStylesPanel } from './LetterStylesPanel';
 import { PartsPanel } from './PartsPanel';
 import { PositionPad } from './PositionPad';
@@ -329,7 +334,10 @@ function TransformFields({
             max={MAX_COORD}
             suffix="px"
             onCommit={(width) => {
-              onPatch({ width, height: width * (layer.height / layer.width) });
+              // Frames resize freely; artwork and photos keep their proportions.
+              onPatch(
+                layer.kind === 'frame' ? { width } : { width, height: width * (layer.height / layer.width) },
+              );
             }}
           />
           <NumberField
@@ -341,23 +349,29 @@ function TransformFields({
             max={MAX_COORD}
             suffix="px"
             onCommit={(height) => {
-              onPatch({ height, width: height * (layer.width / layer.height) });
+              onPatch(
+                layer.kind === 'frame'
+                  ? { height }
+                  : { height, width: height * (layer.width / layer.height) },
+              );
             }}
           />
         </>
       )}
-      <NumberField
-        key={`r-${String(layer.angle)}`}
-        id={`${baseId}-r`}
-        label={t('editor.properties.rotation')}
-        value={layer.angle}
-        min={-3600}
-        max={3600}
-        suffix="°"
-        onCommit={(angle) => {
-          onPatch({ angle: normalizeAngle(angle) });
-        }}
-      />
+      {layer.kind !== 'frame' && (
+        <NumberField
+          key={`r-${String(layer.angle)}`}
+          id={`${baseId}-r`}
+          label={t('editor.properties.rotation')}
+          value={layer.angle}
+          min={-3600}
+          max={3600}
+          suffix="°"
+          onCommit={(angle) => {
+            onPatch({ angle: normalizeAngle(angle) });
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -694,10 +708,18 @@ interface PropertiesPanelProps {
   artboard: Artboard;
   layouts: ReadonlyMap<string, TextLayout>;
   errors: ReadonlyMap<string, string>;
+  flows: StoryFlows;
   actions: EditorActions;
 }
 
-export function PropertiesPanel({ project, artboard, layouts, errors, actions }: PropertiesPanelProps) {
+export function PropertiesPanel({
+  project,
+  artboard,
+  layouts,
+  errors,
+  flows,
+  actions,
+}: PropertiesPanelProps) {
   const { t, i18n } = useTranslation();
   const selectedIds = useEditorStore((s) => s.selectedIds);
   const selected = project.layers.filter((l) => selectedIds.includes(l.id));
@@ -735,6 +757,44 @@ export function PropertiesPanel({ project, artboard, layouts, errors, actions }:
           <PositionPad actions={actions} />
         </>
       )}
+      {single?.kind === 'frame' && (
+        <>
+          <FramePanel
+            key={single.id}
+            project={project}
+            frame={single}
+            flow={flows.stories.get(single.storyId)}
+            actions={actions}
+          />
+          <Card>
+            <CardContent className="pt-3">
+              <TransformFields
+                layer={single}
+                onPatch={(changes) => {
+                  actions.patchLayer(single.id, (l) => Object.assign(l, changes));
+                }}
+              />
+            </CardContent>
+          </Card>
+        </>
+      )}
+      {single?.kind === 'image' && (
+        <>
+          <ImagePanel key={single.id} image={single} actions={actions} />
+          <Card>
+            <CardContent className="pt-3">
+              <TransformFields
+                layer={single}
+                onPatch={(changes) => {
+                  actions.patchLayer(single.id, (l) => Object.assign(l, changes));
+                }}
+              />
+            </CardContent>
+          </Card>
+          <PositionPad actions={actions} />
+        </>
+      )}
+      {selected.length > 0 && <TextWrapCard layers={selected} actions={actions} />}
       {selected.length > 0 && <ArrangeCard count={selected.length} actions={actions} />}
       {selected.length === 0 && (
         <>

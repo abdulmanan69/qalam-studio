@@ -103,7 +103,7 @@ describe('svg export', () => {
   it('renders text as outlines with gradient, outline, opacity and shadow', () => {
     const svg = renderArtboardSvg(artboard, [run], new Map([[run.id, layout]]));
     expect(svg).toContain('width="200" height="100"');
-    expect(svg).toContain('<rect width="200" height="100" fill="#ffffff"/>');
+    expect(svg).toContain('<rect x="0" y="0" width="200" height="100" fill="#ffffff"/>');
     expect(svg).toContain('d="M0 0L10 0L10 10Z"');
     expect(svg).toContain('transform="matrix(1 0 0 1 5 6)"');
     expect(svg).toContain('<linearGradient');

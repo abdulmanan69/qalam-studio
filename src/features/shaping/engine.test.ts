@@ -184,3 +184,65 @@ describe('coverage', () => {
     expect(engine.coverage('amiri', ['بسم', 'ﷺ', '۝', 'A😀'])).toEqual([true, true, true, false]);
   });
 });
+
+describe('text flow through frames', () => {
+  const body = {
+    fontKey: 'nastaliq',
+    language: 'ur',
+    fontSize: 20,
+    lineHeight: 0.8,
+    align: 'justify' as const,
+    justify: 'kashida' as const,
+    firstIndent: 0,
+    spaceBefore: 0,
+    spaceAfter: 4,
+    color: '#000000',
+    kashidaMode: 'stretch' as const,
+  };
+  const paragraph = 'یہ ایک خبر کا متن ہے جو کالموں میں بہتا ہے اور صفحات پر پھیلتا ہے۔ '.repeat(12).trim();
+  const frame = (id: string, count = 2) => ({
+    id,
+    width: 400,
+    height: 300,
+    inset: 4,
+    columns: { count, gutter: 12 },
+    exclusions: [],
+  });
+
+  it('fills columns right to left and justifies lines to the column width', () => {
+    const result = engine.flow({
+      frames: [frame('a')],
+      styles: [body],
+      paragraphs: [{ text: paragraph, style: 0 }],
+    });
+    const lines = result.frames[0]?.lines ?? [];
+    expect(lines.length).toBeGreaterThan(4);
+    // Right column first: the first line sits in the right half.
+    expect(lines[0]?.x).toBeGreaterThan(190);
+    // Justified (non-final) lines fill the column: 400 - 2×4 inset - 12 gutter = 380 / 2 = 190.
+    const full = lines.filter((l) => l.x > 190).slice(0, -1);
+    for (const line of full.slice(0, 3)) expect(line.width).toBeGreaterThan(185);
+    expect(lines.every((l) => l.d.startsWith('M'))).toBe(true);
+  });
+
+  it('continues into the next frame and reports overflow when frames run out', () => {
+    const long = Array.from({ length: 6 }, () => ({ text: paragraph, style: 0 }));
+    const one = engine.flow({ frames: [frame('a')], styles: [body], paragraphs: long });
+    expect(one.overflow).toBe(true);
+    const two = engine.flow({ frames: [frame('a'), frame('b')], styles: [body], paragraphs: long });
+    expect(two.frames[1]?.lines.length).toBeGreaterThan(0);
+    expect(two.placedWords).toBeGreaterThan(one.placedWords);
+  });
+
+  it('keeps lines out of text-wrap areas', () => {
+    const exclusion = { x: 150, y: 0, width: 250, height: 150 };
+    const result = engine.flow({
+      frames: [{ ...frame('a', 1), exclusions: [exclusion] }],
+      styles: [body],
+      paragraphs: [{ text: paragraph, style: 0 }],
+    });
+    for (const line of result.frames[0]?.lines ?? []) {
+      if (line.y < 150 - line.height) expect(line.x + line.width).toBeLessThanOrEqual(150.5);
+    }
+  });
+});

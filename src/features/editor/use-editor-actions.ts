@@ -10,16 +10,36 @@ import {
   MAX_KASHIDA_EM,
   type Artboard,
   type Guide,
+  type ImageLayer,
   type Layer,
+  type ParagraphStyle,
   type PartKindName,
   type PartOverride,
   type Project,
+  type Story,
+  type TextFrame,
   type TextRun,
 } from '@/features/projects/schema';
 import { baseName, MAX_SVG_BYTES, parseSvg, SVG_ACCEPT } from '@/features/projects/svg-import';
 import { endOfLetter } from '@/features/shaping/joining';
 import type { AlternateForm, TextLayout } from '@/features/shaping/types';
-import { pickFile } from '@/lib/files';
+import {
+  addLinkedFrame,
+  addPages,
+  addParagraphStyle,
+  adoptFrames,
+  applyPageSetup,
+  assignMaster,
+  createFrame,
+  createMaster,
+  deleteParagraphStyle,
+  movePage,
+  unlinkFrame,
+  updateParagraphStyle,
+  type PageSetup,
+} from '@/features/publishing/publishing-ops';
+import { fitToPageGrid } from '@/features/publishing/pages';
+import { imageSize, MAX_IMAGE_BYTES, pickFile, readAsDataUrl } from '@/lib/files';
 import { applyToPoint, invert } from '@/lib/matrix';
 import { clamp, createId } from '@/lib/utils';
 
@@ -110,6 +130,25 @@ export interface EditorActions {
     word: number | null,
     style: LetterStyle | Pick<AlternateForm, 'tag' | 'value'> | null,
   ) => void;
+  // Publishing
+  createFrame: (rect: { x: number; y: number; width: number; height: number }) => void;
+  /** Continue a frame's story in a new frame on the next page (or beside it on this page). */
+  addLinkedFrame: (frameId: string, where: 'nextPage' | 'beside') => void;
+  unlinkFrame: (frameId: string) => void;
+  updateStory: (storyId: string, recipe: (story: Story) => void) => void;
+  importStoryText: (storyId: string) => Promise<void>;
+  addParagraphStyle: (baseId: string) => string | null;
+  updateParagraphStyle: (id: string, patch: Partial<Omit<ParagraphStyle, 'id'>>) => void;
+  deleteParagraphStyle: (id: string) => void;
+  /** Text wrap for layers: offset in px, or null to turn it off. */
+  setWrap: (ids: readonly string[], offset: number | null) => void;
+  placeImageFile: () => Promise<void>;
+  applyPageSetup: (artboardIds: readonly string[], setup: PageSetup) => void;
+  addPages: (count: number) => void;
+  createMaster: () => void;
+  assignMaster: (pageIds: readonly string[], masterId: string | null) => void;
+  movePage: (id: string, direction: -1 | 1) => void;
+  setFirstPageNumber: (value: number) => void;
 }
 
 interface Context {
@@ -193,7 +232,9 @@ export function useEditorActions({ artboard, layouts }: Context): EditorActions 
     };
     const insert = (layers: Layer[]) => {
       if (layers.length === 0) return;
+      const stories = currentProject()?.stories ?? [];
       applyToDocument((draft) => {
+        adoptFrames(draft, layers, stories);
         insertLayers(draft, layers);
       });
       editor().select(layers.map((l) => l.id));
@@ -576,6 +617,189 @@ export function useEditorActions({ artboard, layouts }: Context): EditorActions 
           else applyLetterStyle(run, layout, letters, style);
         });
       },
+      createFrame: (rect) => {
+        const grid = fitToPageGrid(artboard, rect);
+        const out: { id: string | null } = { id: null };
+        applyToDocument((draft) => {
+          out.id = createFrame(draft, artboard.id, grid.rect, grid.columns);
+        });
+        if (out.id) editor().select([out.id]);
+      },
+      addLinkedFrame: (frameId, where) => {
+        const project = currentProject();
+        const frame = project?.layers.find((l): l is TextFrame => l.id === frameId && l.kind === 'frame');
+        if (!project || !frame) return;
+        let target = frame.artboardId;
+        let rect = { x: frame.x, y: frame.y, width: frame.width, height: frame.height };
+        if (where === 'beside') {
+          // Right-to-left reading order: the continuation goes to the left.
+          rect = { ...rect, x: frame.x - frame.width - 12 };
+        } else {
+          const pages = project.artboards.filter((a) => !a.master);
+          const index = pages.findIndex((a) => a.id === frame.artboardId);
+          const nextPage = pages[index + 1];
+          if (nextPage) {
+            target = nextPage.id;
+          } else {
+            let created: string[] = [];
+            applyToDocument((draft) => {
+              created = addPages(draft, frame.artboardId, 1, t('publishing.pageName'));
+            });
+            if (!created[0]) return;
+            target = created[0];
+          }
+        }
+        const out: { id: string | null } = { id: null };
+        applyToDocument((draft) => {
+          out.id = addLinkedFrame(draft, frameId, target, rect);
+        });
+        if (out.id) {
+          if (target !== artboard.id) editor().setActiveArtboard(target);
+          editor().select([out.id]);
+        }
+      },
+      unlinkFrame: (frameId) => {
+        applyToDocument((draft) => {
+          unlinkFrame(draft, frameId);
+        });
+      },
+      updateStory: (storyId, recipe) => {
+        applyToDocument((draft) => {
+          const story = draft.stories.find((s) => s.id === storyId);
+          if (story) recipe(story);
+        });
+      },
+      importStoryText: async (storyId) => {
+        const file = await pickFile({ accept: '.txt,text/plain' });
+        if (!file) return;
+        const text = (await file.text()).normalize('NFC').replace(/\r\n?/g, '\n');
+        const paragraphs = text
+          .split(/\n/)
+          .map((line) => line.trim())
+          .filter((line, i, all) => line.length > 0 || (i > 0 && (all[i - 1] ?? '').length > 0))
+          .slice(0, 10_000);
+        if (paragraphs.length === 0) return;
+        applyToDocument((draft) => {
+          const story = draft.stories.find((s) => s.id === storyId);
+          if (!story) return;
+          const styleId = story.paragraphs[0]?.styleId ?? 'body';
+          story.paragraphs = paragraphs.map((p) => ({ text: p.slice(0, 20_000), styleId }));
+        });
+        toast.success(t('publishing.imported', { count: paragraphs.length }));
+      },
+      addParagraphStyle: (baseId) => {
+        const project = currentProject();
+        const base = project?.paragraphStyles.find((s) => s.id === baseId);
+        if (!base) return null;
+        let id: string | null = null;
+        applyToDocument((draft) => {
+          id = addParagraphStyle(draft, base, t('publishing.styleCopy', { name: base.name }).slice(0, 120));
+        });
+        return id;
+      },
+      updateParagraphStyle: (id, patch) => {
+        applyToDocument((draft) => {
+          updateParagraphStyle(draft, id, patch);
+        });
+      },
+      deleteParagraphStyle: (id) => {
+        const project = currentProject();
+        const replacement = project?.paragraphStyles.find((s) => s.id !== id);
+        if (!replacement) return;
+        applyToDocument((draft) => {
+          deleteParagraphStyle(draft, id, replacement.id);
+        });
+      },
+      setWrap: (ids, offset) => {
+        applyToDocument((draft) => {
+          for (const layer of draft.layers) {
+            if (!ids.includes(layer.id)) continue;
+            if (offset === null) delete layer.wrap;
+            else layer.wrap = { offset };
+          }
+        });
+      },
+      placeImageFile: async () => {
+        const file = await pickFile({ accept: 'image/png,image/jpeg,image/webp,image/gif' });
+        if (!file) return;
+        if (file.size > MAX_IMAGE_BYTES) {
+          toast.error(t('publishing.imageTooLarge'));
+          return;
+        }
+        try {
+          const src = await readAsDataUrl(file);
+          const { width, height } = await imageSize(src);
+          const scale = Math.min(1, (artboard.width * 0.5) / width, (artboard.height * 0.5) / height);
+          const w = Math.round(width * scale);
+          const h = Math.round(height * scale);
+          const layer: ImageLayer = {
+            id: createId(),
+            kind: 'image',
+            artboardId: artboard.id,
+            name: baseName(file.name),
+            hidden: false,
+            locked: false,
+            groupId: null,
+            src,
+            naturalWidth: width,
+            naturalHeight: height,
+            x: Math.round((artboard.width - w) / 2),
+            y: Math.round((artboard.height - h) / 2),
+            width: w,
+            height: h,
+            angle: 0,
+            opacity: 1,
+            fit: 'cover',
+            focusX: 0.5,
+            focusY: 0.5,
+          };
+          insert([layer]);
+        } catch (error) {
+          console.error(error);
+          toast.error(t('publishing.imageFailed'));
+        }
+      },
+      applyPageSetup: (ids, setup) => {
+        applyToDocument((draft) => {
+          applyPageSetup(draft, ids, setup);
+        });
+      },
+      addPages: (count) => {
+        let created: string[] = [];
+        applyToDocument((draft) => {
+          created = addPages(draft, artboard.id, Math.max(1, Math.min(200, count)), t('publishing.pageName'));
+        });
+        if (created[0]) editor().setActiveArtboard(created[0]);
+      },
+      createMaster: () => {
+        const project = currentProject();
+        const count = project?.artboards.filter((a) => a.master).length ?? 0;
+        const out: { id: string | null } = { id: null };
+        applyToDocument((draft) => {
+          out.id = createMaster(
+            draft,
+            artboard.id,
+            t('publishing.masterName', { letter: String.fromCharCode(65 + count) }),
+          );
+          if (out.id && !artboard.master) assignMaster(draft, [artboard.id], out.id);
+        });
+        if (out.id) editor().setActiveArtboard(out.id);
+      },
+      assignMaster: (pageIds, masterId) => {
+        applyToDocument((draft) => {
+          assignMaster(draft, pageIds, masterId);
+        });
+      },
+      movePage: (id, direction) => {
+        applyToDocument((draft) => {
+          movePage(draft, id, direction);
+        });
+      },
+      setFirstPageNumber: (value) => {
+        applyToDocument((draft) => {
+          draft.firstPageNumber = Math.round(value);
+        });
+      },
       addArtboard: () => {
         const project = currentProject();
         if (!project || project.artboards.length >= MAX_ARTBOARDS) return;
@@ -624,6 +848,7 @@ export function useEditorActions({ artboard, layouts }: Context): EditorActions 
         const next = project.artboards[index === 0 ? 1 : index - 1];
         applyToDocument((draft) => {
           draft.artboards = draft.artboards.filter((a) => a.id !== id);
+          for (const a of draft.artboards) if (a.masterId === id) a.masterId = null;
           deleteLayers(
             draft,
             draft.layers.filter((l) => l.artboardId === id).map((l) => l.id),

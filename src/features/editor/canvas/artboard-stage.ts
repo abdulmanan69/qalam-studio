@@ -3,8 +3,10 @@ import {
   Canvas,
   FabricImage,
   Gradient,
+  Group,
   Path,
   Point,
+  Rect,
   Shadow,
   type FabricObject,
   type TPointerEvent,
@@ -13,12 +15,16 @@ import {
 import type {
   Artboard,
   Guide,
+  ImageLayer,
   Layer,
   LayerStyle,
   PartOverride,
   SvgAsset,
+  TextFrame,
   TextRun,
 } from '@/features/projects/schema';
+import { layoutGuides, marginBox, pageColumns } from '@/features/publishing/pages';
+import type { FlowFrameResult } from '@/features/shaping/flow';
 import type { Box, TextLayout } from '@/features/shaping/types';
 import {
   applyToPoint,
@@ -38,6 +44,7 @@ import {
   buildUnits,
   gradientVector,
   hexToRgba,
+  imagePlacement,
   joinPaths,
   resolveParts,
   textMatrix,
@@ -64,6 +71,12 @@ export interface StageLayer {
   layer: Layer;
   /** Text only; undefined while shaping (the previous drawing is kept). */
   layout?: TextLayout;
+  /** Text frames: the lines flowed into this frame. */
+  flow?: FlowFrameResult;
+  /** Text frames: the story does not fit (shown as a red marker on the last frame). */
+  overflow?: boolean;
+  /** Layers from the master page: drawn, never selectable. */
+  readonly?: boolean;
 }
 
 export interface StageEdit {
@@ -85,7 +98,8 @@ export interface StageScene {
 
 export type LayerChange =
   | { id: string; kind: 'text'; transform: Transform }
-  | { id: string; kind: 'svg'; x: number; y: number; angle: number; width: number; height: number };
+  /** SVG artwork, photos and text frames: a box (frames ignore the angle). */
+  | { id: string; kind: 'box'; x: number; y: number; angle: number; width: number; height: number };
 
 export interface StageCallbacks {
   selectLayers: (ids: string[]) => void;
@@ -99,6 +113,8 @@ export interface StageCallbacks {
   moveGuide: (id: string, position: number | null) => void;
   previewKashida: (layerId: string, letter: number, value: number) => void;
   commitKashida: (layerId: string, letter: number, value: number) => void;
+  /** Frame tool: a rectangle was drawn (artboard coordinates). */
+  createFrame: (rect: { x: number; y: number; width: number; height: number }) => void;
 }
 
 interface ObjectInfo {
@@ -136,6 +152,11 @@ interface GuideDrag {
   position: number;
 }
 
+interface FrameDraw {
+  start: XY;
+  end: XY;
+}
+
 const SELECTION_STYLE = {
   borderColor: '#2f6fa3',
   cornerColor: '#ffffff',
@@ -156,6 +177,10 @@ const UNIT_STYLE = {
 };
 
 const GUIDE_COLOR = '#00a3c4';
+/** Page margins and columns. */
+const LAYOUT_GUIDE_COLOR = 'rgba(168,85,247,0.55)';
+/** Edge of a text frame without a border (editor only). */
+const FRAME_EDGE_COLOR = '#8fa3b5';
 const SNAP_COLOR = '#e8408a';
 const SNAP_DISTANCE_PX = 6;
 const GUIDE_HIT_PX = 5;
@@ -225,6 +250,7 @@ export class ArtboardStage {
   private snapLines: SnapLine[] = [];
   private kashidaDrag: KashidaDrag | null = null;
   private guideDrag: GuideDrag | null = null;
+  private frameDraw: FrameDraw | null = null;
 
   constructor(
     element: HTMLCanvasElement,
@@ -291,7 +317,13 @@ export class ArtboardStage {
     this.canvas.skipTargetFind = scene.tool === 'hand';
     this.canvas.selection = interactive;
     this.canvas.defaultCursor =
-      scene.tool === 'kashida' ? 'ew-resize' : scene.tool === 'baseline' ? 'row-resize' : 'default';
+      scene.tool === 'kashida'
+        ? 'ew-resize'
+        : scene.tool === 'baseline'
+          ? 'row-resize'
+          : scene.tool === 'frame'
+            ? 'crosshair'
+            : 'default';
 
     const wanted = new Set(scene.layers.map((l) => l.layer.id));
     this.withMuted(() => {
@@ -326,11 +358,19 @@ export class ArtboardStage {
     const { layer } = item;
     const edit = scene.edit?.layerId === layer.id ? scene.edit : null;
     const editingOther = scene.edit !== null && !edit;
-    const selectable = scene.tool === 'select' && !layer.locked && !editingOther;
+    const selectable = scene.tool === 'select' && !layer.locked && !editingOther && !item.readonly;
     const existing = this.entries.get(layer.id);
 
     if (layer.kind === 'svg') {
       this.syncAsset(layer, existing, selectable, editingOther);
+      return;
+    }
+    if (layer.kind === 'image') {
+      this.syncImage(layer, existing, selectable, editingOther);
+      return;
+    }
+    if (layer.kind === 'frame') {
+      this.syncFrame(item, layer, existing, selectable, editingOther);
       return;
     }
     if (!item.layout) {
@@ -372,7 +412,9 @@ export class ArtboardStage {
     const info = this.info.get(object);
     const layer = info ? this.findLayer(info.layerId) : undefined;
     if (!layer) return 1;
-    return layer.kind === 'svg' ? layer.opacity : layer.style.opacity;
+    if (layer.kind === 'text') return layer.style.opacity;
+    if (layer.kind === 'frame') return 1;
+    return layer.opacity;
   }
 
   private findLayer(id: string): Layer | undefined {
@@ -506,6 +548,157 @@ export class ArtboardStage {
     setObjectMatrix(image, multiply(m, translate(natural.width / 2, natural.height / 2)));
   }
 
+  private syncImage(
+    layer: ImageLayer,
+    existing: LayerEntry | undefined,
+    selectable: boolean,
+    dimmed: boolean,
+  ): void {
+    const signature: unknown[] = [layer.src];
+    const image = existing?.objects[0];
+    if (existing && sameSignature(existing.signature, signature)) {
+      if (image) this.placeImage(image as FabricImage, layer);
+      this.updateInteractivity(existing, selectable, dimmed, layer.hidden);
+      return;
+    }
+    if (existing) for (const object of existing.objects) this.canvas.remove(object);
+    const token = this.nextToken++;
+    const entry: LayerEntry = { signature, objects: [], token };
+    this.entries.set(layer.id, entry);
+    FabricImage.fromURL(layer.src)
+      .then((loaded) => {
+        const current = this.entries.get(layer.id);
+        const latest = this.findLayer(layer.id);
+        if (this.disposed || current?.token !== token || latest?.kind !== 'image') return;
+        loaded.set({ ...SELECTION_STYLE, objectCaching: false });
+        this.placeImage(loaded, latest);
+        current.objects = [loaded];
+        this.withMuted(() => {
+          this.canvas.add(loaded);
+          if (this.scene) {
+            const scene = this.scene;
+            const readonly = scene.layers.find((l) => l.layer.id === layer.id)?.readonly ?? false;
+            this.updateInteractivity(
+              current,
+              scene.tool === 'select' && !latest.locked && scene.edit === null && !readonly,
+              scene.edit !== null,
+              latest.hidden,
+            );
+            this.applyOrder(scene);
+            this.applySelection(scene);
+          }
+        });
+        this.canvas.requestRenderAll();
+      })
+      .catch((error: unknown) => {
+        console.error('Could not load image', error);
+      });
+  }
+
+  /** Crop and scale a photo into its box according to the fit mode. */
+  private placeImage(image: FabricImage, layer: ImageLayer): void {
+    const place = imagePlacement(layer);
+    image.set({ cropX: place.cropX, cropY: place.cropY, width: place.width, height: place.height });
+    this.info.set(image, {
+      layerId: layer.id,
+      unitId: null,
+      matrix: place.matrix,
+      anchor: { x: place.width / 2, y: place.height / 2 },
+      natural: { width: place.width, height: place.height },
+    });
+    setObjectMatrix(image, multiply(place.matrix, translate(place.width / 2, place.height / 2)));
+  }
+
+  private syncFrame(
+    item: StageLayer,
+    layer: TextFrame,
+    existing: LayerEntry | undefined,
+    selectable: boolean,
+    dimmed: boolean,
+  ): void {
+    const signature: unknown[] = [layer, item.flow, item.overflow];
+    if (existing && sameSignature(existing.signature, signature)) {
+      this.updateInteractivity(existing, selectable, dimmed, layer.hidden);
+      return;
+    }
+    const children: FabricObject[] = [];
+    const box = {
+      left: 0,
+      top: 0,
+      width: layer.width,
+      height: layer.height,
+      originX: 'left',
+      originY: 'top',
+    } as const;
+    children.push(
+      new Rect({
+        ...box,
+        fill: layer.background ?? 'rgba(0,0,0,0)',
+        stroke: layer.border && layer.border.width > 0 ? layer.border.color : FRAME_EDGE_COLOR,
+        strokeWidth: layer.border && layer.border.width > 0 ? layer.border.width : 1,
+        strokeDashArray: layer.border && layer.border.width > 0 ? null : [5, 4],
+        strokeUniform: true,
+      }),
+    );
+    const byColor = new Map<string, string[]>();
+    for (const line of item.flow?.lines ?? []) {
+      const list = byColor.get(line.color) ?? [];
+      list.push(line.d);
+      byColor.set(line.color, list);
+    }
+    for (const [color, paths] of byColor) {
+      const d = paths.join('');
+      if (d) children.push(new Path(d, { fill: color, objectCaching: false }));
+    }
+    if (item.overflow) {
+      // Red "+" box: the story continues beyond this frame but has nowhere to go.
+      const s = 12;
+      children.push(
+        new Rect({
+          left: layer.width - s - 2,
+          top: layer.height - s - 2,
+          width: s,
+          height: s,
+          originX: 'left',
+          originY: 'top',
+          fill: '#ffffff',
+          stroke: '#d92d20',
+          strokeWidth: 1.5,
+        }),
+        new Path(
+          `M${String(layer.width - 2 - s / 2)} ${String(layer.height - s)}V${String(layer.height - 4)}M${String(layer.width - s)} ${String(layer.height - 2 - s / 2)}H${String(layer.width - 4)}`,
+          {
+            stroke: '#d92d20',
+            strokeWidth: 1.5,
+            fill: null,
+          },
+        ),
+      );
+    }
+    const group = new Group(children, {
+      ...SELECTION_STYLE,
+      subTargetCheck: false,
+      interactive: false,
+      objectCaching: false,
+      lockRotation: true,
+    });
+    group.setControlVisible('mtr', false);
+    const center = group.getCenterPoint();
+    if (existing) for (const object of existing.objects) this.canvas.remove(object);
+    this.info.set(group, {
+      layerId: layer.id,
+      unitId: null,
+      matrix: translate(layer.x, layer.y),
+      anchor: { x: center.x, y: center.y },
+      natural: { width: layer.width, height: layer.height },
+    });
+    setObjectMatrix(group, translate(layer.x + center.x, layer.y + center.y));
+    this.canvas.add(group);
+    const entry: LayerEntry = { signature, objects: [group] };
+    this.entries.set(layer.id, entry);
+    this.updateInteractivity(entry, selectable, dimmed, layer.hidden);
+  }
+
   private applyOrder(scene: StageScene): void {
     let index = 0;
     for (const { layer } of scene.layers) {
@@ -609,7 +802,7 @@ export class ArtboardStage {
         const natural = info.natural ?? { width: layer.width, height: layer.height };
         changes.push({
           id: layer.id,
-          kind: 'svg',
+          kind: 'box',
           x: t.x,
           y: t.y,
           angle: t.angle,
@@ -631,6 +824,10 @@ export class ArtboardStage {
     }
     if (scene.tool === 'kashida') {
       this.kashidaDrag = this.findKashidaTarget(p);
+      return;
+    }
+    if (scene.tool === 'frame') {
+      this.frameDraw = { start: { x: p.x, y: p.y }, end: { x: p.x, y: p.y } };
       return;
     }
     if (scene.tool === 'select' && !target) {
@@ -655,6 +852,11 @@ export class ArtboardStage {
       }
       return;
     }
+    if (this.frameDraw) {
+      this.frameDraw.end = { x: p.x, y: p.y };
+      this.canvas.requestRenderAll();
+      return;
+    }
     const guideDrag = this.guideDrag;
     if (guideDrag) {
       guideDrag.position = Math.round(guideDrag.guide.axis === 'y' ? p.y : p.x);
@@ -669,6 +871,22 @@ export class ArtboardStage {
   }
 
   private handleMouseUp(): void {
+    const draw = this.frameDraw;
+    if (draw) {
+      this.frameDraw = null;
+      const x = Math.min(draw.start.x, draw.end.x);
+      const y = Math.min(draw.start.y, draw.end.y);
+      const width = Math.abs(draw.end.x - draw.start.x);
+      const height = Math.abs(draw.end.y - draw.start.y);
+      // A click (no drag) makes a frame of a sensible default size.
+      const rect =
+        width < 12 || height < 12
+          ? { x: Math.round(draw.start.x), y: Math.round(draw.start.y), width: 320, height: 240 }
+          : { x: Math.round(x), y: Math.round(y), width: Math.round(width), height: Math.round(height) };
+      this.callbacks.createFrame(rect);
+      this.canvas.requestRenderAll();
+      return;
+    }
     const drag = this.kashidaDrag;
     if (drag) {
       this.kashidaDrag = null;
@@ -763,6 +981,12 @@ export class ArtboardStage {
         }
       }
       this.snapTargets = collectSnapTargets(scene.artboard, others, scene.view);
+      if (scene.view.snap) {
+        // Page margins and columns are snap targets too.
+        const layout = layoutGuides(scene.artboard);
+        this.snapTargets.xs.push(...layout.xs);
+        this.snapTargets.ys.push(...layout.ys);
+      }
     }
     const r = target.getBoundingRect();
     const box = { x: r.left, y: r.top, width: r.width, height: r.height };
@@ -830,6 +1054,40 @@ export class ArtboardStage {
         ctx.lineTo(width, height / 2);
       }
       ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Page margins and column grid.
+    if (scene.artboard.margins || scene.artboard.columns) {
+      const box = marginBox(scene.artboard);
+      ctx.strokeStyle = LAYOUT_GUIDE_COLOR;
+      ctx.strokeRect(box.x, box.y, box.width, box.height);
+      ctx.beginPath();
+      for (const col of pageColumns(scene.artboard)) {
+        ctx.moveTo(col.x, box.y);
+        ctx.lineTo(col.x, box.y + box.height);
+        ctx.moveTo(col.x + col.width, box.y);
+        ctx.lineTo(col.x + col.width, box.y + box.height);
+      }
+      ctx.stroke();
+    }
+    // Bleed: the area outside the page that is trimmed off after printing.
+    if (scene.artboard.bleed) {
+      ctx.strokeStyle = 'rgba(217,45,32,0.5)';
+      ctx.setLineDash([3 / zoom, 3 / zoom]);
+      ctx.strokeRect(0, 0, width, height);
+      ctx.setLineDash([]);
+    }
+    if (this.frameDraw) {
+      const f = this.frameDraw;
+      ctx.strokeStyle = '#2f6fa3';
+      ctx.setLineDash([5 / zoom, 4 / zoom]);
+      ctx.strokeRect(
+        Math.min(f.start.x, f.end.x),
+        Math.min(f.start.y, f.end.y),
+        Math.abs(f.end.x - f.start.x),
+        Math.abs(f.end.y - f.start.y),
+      );
       ctx.setLineDash([]);
     }
 

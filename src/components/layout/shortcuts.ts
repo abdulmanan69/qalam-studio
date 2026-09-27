@@ -37,7 +37,9 @@ export type ShortcutId =
   | 'toggleRulers'
   | 'lockLayer'
   | 'exportDesign'
-  | 'placeSvg';
+  | 'placeSvg'
+  | 'frameTool'
+  | 'placeImage';
 
 export interface ShortcutDefinition {
   id: ShortcutId;
@@ -88,6 +90,8 @@ export const SHORTCUTS: readonly ShortcutDefinition[] = [
   { id: 'lockLayer', combo: 'mod+l', group: 'editor' },
   { id: 'exportDesign', combo: 'mod+e', group: 'editor' },
   { id: 'placeSvg', combo: 'mod+shift+i', group: 'editor' },
+  { id: 'frameTool', combo: 'f', group: 'editor' },
+  { id: 'placeImage', combo: 'shift+p', group: 'editor' },
 ];
 
 export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = ['general', 'projects', 'editor'];

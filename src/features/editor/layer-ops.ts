@@ -2,6 +2,7 @@ import type { Draft } from 'immer';
 
 import type { Layer, Project } from '@/features/projects/schema';
 import type { Box } from '@/features/shaping/types';
+import { pruneStories } from '@/features/publishing/publishing-ops';
 import { createId } from '@/lib/utils';
 import { decompose, multiply, scale, translate, type Transform } from '@/lib/matrix';
 
@@ -35,6 +36,7 @@ export function deleteLayers(draft: Draft<Project>, ids: readonly string[]): voi
   const remove = new Set(ids);
   draft.layers = draft.layers.filter((l) => !remove.has(l.id));
   pruneGroups(draft);
+  pruneStories(draft);
 }
 
 export function translateLayers(draft: Draft<Project>, ids: readonly string[], dx: number, dy: number): void {
@@ -52,12 +54,12 @@ export function applyLayerChanges(draft: Draft<Project>, changes: readonly Layer
     if (!layer) continue;
     if (change.kind === 'text' && layer.kind === 'text') {
       Object.assign(layer, roundTransform(change.transform));
-    } else if (change.kind === 'svg' && layer.kind === 'svg') {
+    } else if (change.kind === 'box' && layer.kind !== 'text') {
       layer.x = round(change.x);
       layer.y = round(change.y);
-      layer.angle = round(change.angle);
-      layer.width = round(change.width);
-      layer.height = round(change.height);
+      layer.width = round(Math.max(8, change.width));
+      layer.height = round(Math.max(8, change.height));
+      if (layer.kind !== 'frame') layer.angle = round(change.angle);
     }
   }
 }
@@ -250,7 +252,7 @@ export function mirrorLayers(
     if (layer.kind === 'text') {
       Object.assign(layer, roundTransform(decompose(multiply(mirror, textMatrix(layer)))));
     } else {
-      const m = assetMatrix(layer);
+      const m = assetMatrix({ x: layer.x, y: layer.y, angle: layer.kind === 'frame' ? 0 : layer.angle });
       const cx = m[0] * (layer.width / 2) + m[2] * (layer.height / 2) + m[4];
       const cy = m[1] * (layer.width / 2) + m[3] * (layer.height / 2) + m[5];
       const dx = axis === 'x' ? 2 * (at - cx) : 0;
