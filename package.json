@@ -56,7 +56,7 @@
     "dexie-react-hooks": "^4.4.0",
     "fabric": "^7.4.0",
     "harfbuzzjs": "^1.6.2",
-    "i18next": "^26.4.2",
+    "i18next": "^26.4.3",
     "immer": "^11.1.18",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.48.0",
